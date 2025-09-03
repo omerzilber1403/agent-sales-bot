@@ -1,0 +1,39 @@
+﻿project:
+    name: AGENT
+    version: 0.1
+    env: dev
+
+whatsapp:
+    bsp: twilio
+    webhook_url: http://localhost:8080/webhook/whatsapp
+    outbound_sender: "whatsapp:+1234567890"
+    handoff_keywords: ["נציג", "בן אדם", "איש מכירות", "תדבר איתי"]
+
+agent:
+    orchestrator: langgraph
+    graph_profile: default_sales
+    default_locale: he
+    tones:
+        - id: direct
+          description: "ישיר וקצר ללידים חמים"
+        - id: guide
+          description: "מדריך וסבלני לתנועה אורגנית"
+    no_invention_fields: ["price", "discount", "availability"]
+    max_turns_before_handoff: 15
+
+knowledge:
+    vector_db: pgvector
+    sources: []
+
+analytics:
+    kpi_primary: conversion
+    kpi_secondary: containment
+
+security:
+    rbac: ["coach", "agent", "admin"]
+    pii_retention_days: 365
+
+features:
+    coach_feedback: true
+    ab_testing: false
+    crm_integration: false

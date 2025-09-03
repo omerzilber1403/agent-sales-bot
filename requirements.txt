@@ -1,0 +1,12 @@
+﻿fastapi
+uvicorn[standard]
+pydantic-settings
+PyYAML
+loguru
+httpx
+tenacity
+langgraph
+sqlalchemy
+alembic
+sqlite3
+python-multipart
