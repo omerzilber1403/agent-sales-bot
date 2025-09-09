@@ -6,7 +6,7 @@ from ..services.database_service import get_database_service
 from ..services.customer_service import get_customer_service
 from ..database.connection import get_db
 from ..graph.sales_graph import create_sales_graph
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, AIMessage
 import json
 
 router = APIRouter(prefix="/api/v1/agent", tags=["agent"])
@@ -167,9 +167,27 @@ async def agent_reply(request: AgentRequest):
         # Create the sales graph with company data
         graph = create_sales_graph(company_data)
         
+        # Get conversation history from database
+        messages = []
+        if conversation:
+            # Get all previous messages from the conversation
+            previous_messages = db_service.get_conversation_messages(conversation.id)
+            
+            # Convert database messages to LangChain format
+            for msg in previous_messages:
+                if msg.role == "user":
+                    messages.append(HumanMessage(content=msg.content))
+                elif msg.role == "assistant":
+                    messages.append(AIMessage(content=msg.content))
+        
+        # Add the current message
+        messages.append(HumanMessage(content=request.message))
+        
+        print(f"DEBUG: Loading {len(messages)} messages into graph (including current message)")
+        
         # Prepare the input for the graph
         graph_input = {
-            "messages": [HumanMessage(content=request.message)],
+            "messages": messages,
             "customer_context": personalized_context,
             "smart_questions": smart_questions,
             "extracted_info": extracted_info,
