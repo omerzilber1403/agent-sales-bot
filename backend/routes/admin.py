@@ -186,7 +186,11 @@ def create_company(
         # Generate domain if not provided
         if not company.domain:
             import re
+            import uuid
             safe_name = re.sub(r'[^a-zA-Z0-9]', '', company.name.lower())
+            # If no safe characters, use a random string
+            if not safe_name:
+                safe_name = f"company_{uuid.uuid4().hex[:8]}"
             company.domain = f"{safe_name}.example.com"
         
         # Create company with all fields
