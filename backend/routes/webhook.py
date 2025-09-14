@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Request, Header
 from ..schemas import MessageOut
 from ..services.whatsapp_parser import parse_whatsapp_webhook
-from ..graph.sales_graph import create_sales_graph
+from ..graph.sales_graph_v2 import create_sales_graph
 
 router = APIRouter(tags=["webhook"])
 

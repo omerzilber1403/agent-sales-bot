@@ -5,7 +5,7 @@ from ..services.memory import store
 from ..services.database_service import get_database_service
 from ..services.customer_service import get_customer_service
 from ..database.connection import get_db
-from ..graph.sales_graph import create_sales_graph
+from ..graph.sales_graph_v2 import create_sales_graph
 from langchain_core.messages import HumanMessage, AIMessage
 import json
 
