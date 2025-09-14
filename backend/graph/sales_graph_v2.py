@@ -33,6 +33,7 @@ from ..instructions import (
     should_use_bridge,
     get_conversation_flow_guidance
 )
+from ..instructions.learning_system import get_company_learning_instructions
 import json
 
 def debug_bot_response(node_name: str, user_message: str, bot_response: str):
@@ -166,6 +167,12 @@ def create_sales_graph(company_data: Dict[str, Any] = None):
         conversation_stage = state.get("conversation_stage", "greeting")
         message_count = state.get("message_count", 0)
         
+        # Get learning instructions from feedback
+        company_id = company_data.get("id") if company_data else None
+        learning_instructions = ""
+        if company_id:
+            learning_instructions = get_company_learning_instructions(company_id)
+        
         # Build system prompt for B2C approach
         if company_data and company_data.get("custom_prompt"):
             custom_prompt = company_data.get("custom_prompt")
@@ -203,6 +210,8 @@ def create_sales_graph(company_data: Dict[str, Any] = None):
 {PRICING_AND_PRODUCTS_RULES}
 
 {OPENING_MESSAGE_RULE}
+
+{learning_instructions}
 
 תגובה להודעת הלקוח: {state["messages"][-1].content}"""
         else:
@@ -262,6 +271,8 @@ def create_sales_graph(company_data: Dict[str, Any] = None):
 {INFORMATION_FIRST_APPROACH}
 
 {PRICING_AND_PRODUCTS_RULES}
+
+{learning_instructions}
 
 תגובה להודעת הלקוח: {state["messages"][-1].content}"""
 
@@ -325,6 +336,12 @@ def create_sales_graph(company_data: Dict[str, Any] = None):
                 "execution_path": execution_path
             }
         
+        # Get learning instructions from feedback
+        company_id = company_data.get("id") if company_data else None
+        learning_instructions = ""
+        if company_id:
+            learning_instructions = get_company_learning_instructions(company_id)
+        
         # Prepare context for LLM
         customer_context = state.get("customer_context", "")
         smart_questions = state.get("smart_questions", [])
@@ -370,6 +387,8 @@ def create_sales_graph(company_data: Dict[str, Any] = None):
 {PRICING_AND_PRODUCTS_RULES}
 
 {OPENING_MESSAGE_RULE}
+
+{learning_instructions}
 
 תגובה להודעת הלקוח: {state["messages"][-1].content}"""
         else:
@@ -429,6 +448,8 @@ def create_sales_graph(company_data: Dict[str, Any] = None):
 {INFORMATION_FIRST_APPROACH}
 
 {PRICING_AND_PRODUCTS_RULES}
+
+{learning_instructions}
 
 תגובה להודעת הלקוח: {state["messages"][-1].content}"""
 

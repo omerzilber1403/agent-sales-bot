@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import CreateCompanyModal from './CreateCompanyModal'
 
-const CompanySelectionPage = ({ onCompanySelect }) => {
+const CompanySelectionPage = ({ onCompanySelect, onDemoMode }) => {
   const [companies, setCompanies] = useState([])
   const [loading, setLoading] = useState(true)
   const [serverStatus, setServerStatus] = useState('checking')
@@ -130,19 +130,32 @@ const CompanySelectionPage = ({ onCompanySelect }) => {
                   <div 
                     key={company.id} 
                     className="company-card"
-                    onClick={() => handleCompanySelect(company)}
                   >
-                    <div className="company-icon">🏢</div>
-                    <div className="company-info">
-                      <h3>{company.name}</h3>
-                      <p>{company.domain || 'ללא דומיין'}</p>
-                      <div className="company-status">
-                        <span className={`status-badge ${company.is_active ? 'active' : 'inactive'}`}>
-                          {company.is_active ? 'פעיל' : 'לא פעיל'}
-                        </span>
+                    <div className="company-main" onClick={() => handleCompanySelect(company)}>
+                      <div className="company-icon">🏢</div>
+                      <div className="company-info">
+                        <h3>{company.name}</h3>
+                        <p>{company.domain || 'ללא דומיין'}</p>
+                        <div className="company-status">
+                          <span className={`status-badge ${company.is_active ? 'active' : 'inactive'}`}>
+                            {company.is_active ? 'פעיל' : 'לא פעיל'}
+                          </span>
+                        </div>
                       </div>
+                      <div className="company-arrow">→</div>
                     </div>
-                    <div className="company-arrow">→</div>
+                    <div className="company-actions">
+                      <button 
+                        className="demo-btn"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onDemoMode(company)
+                        }}
+                        title="ממשק דמו - בדיקת הבוט כקוח"
+                      >
+                        🧪 דמו
+                      </button>
+                    </div>
                   </div>
                 ))
               ) : (

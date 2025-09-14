@@ -7,6 +7,7 @@ from .routes.coach import router as coach_router
 from .routes.admin import router as admin_router
 from .routes.company_dashboard import router as company_dashboard_router
 from .routes.dev import router as dev_router
+from .routes.feedback import router as feedback_router
 from .config import get_settings
 
 class JSONUTF8Response(JSONResponse):
@@ -36,4 +37,5 @@ app.include_router(coach_router)
 app.include_router(admin_router)
 app.include_router(company_dashboard_router)
 app.include_router(dev_router)
+app.include_router(feedback_router, prefix="/api/v1/feedback", tags=["feedback"])
 

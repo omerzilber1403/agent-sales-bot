@@ -107,54 +107,77 @@ AUTO_DETECTION_PATTERNS = {
 
 def extract_customer_info(message: str, current_profile: dict = None) -> dict:
     """
-    מחלץ מידע על הלקוח מההודעה
+        מחלץ מידע על הלקוח מההודעה - רק מידע ספציפי וברור
     """
     import re
     
     if not current_profile:
         current_profile = {}
     
-    # חילוץ שם
-    for pattern in AUTO_DETECTION_PATTERNS["name"]:
-        match = re.search(pattern, message, re.IGNORECASE)
-        if match:
-            current_profile["name"] = match.group(1).strip()
-            break
+    # רק חילוץ מידע ברור וספציפי
+    message_lower = message.lower()
     
-    # חילוץ גיל
-    for pattern in AUTO_DETECTION_PATTERNS["age"]:
-        match = re.search(pattern, message, re.IGNORECASE)
-        if match:
-            current_profile["age"] = int(match.group(1))
-            break
+    # חילוץ שם - רק אם יש ביטוי ברור
+    if any(phrase in message_lower for phrase in ['קוראים לי', 'השם שלי', 'אני נקרא']):
+        for pattern in AUTO_DETECTION_PATTERNS["name"]:
+            match = re.search(pattern, message, re.IGNORECASE)
+            if match and len(match.group(1).strip()) < 50:  # שם לא יכול להיות ארוך
+                current_profile["name"] = match.group(1).strip()
+                break
     
-    # חילוץ מיקום
-    for pattern in AUTO_DETECTION_PATTERNS["location"]:
-        match = re.search(pattern, message, re.IGNORECASE)
-        if match:
-            current_profile["location"] = match.group(1).strip()
-            break
+    # חילוץ גיל - רק מספרים
+    if any(phrase in message_lower for phrase in ['אני בן', 'בן', 'גיל']):
+        for pattern in AUTO_DETECTION_PATTERNS["age"]:
+            match = re.search(pattern, message, re.IGNORECASE)
+            if match:
+                try:
+                    age = int(match.group(1))
+                    if 13 <= age <= 120:  # גיל הגיוני
+                        current_profile["age"] = age
+                        break
+                except:
+                    continue
     
-    # חילוץ תחום עיסוק
-    for pattern in AUTO_DETECTION_PATTERNS["occupation"]:
-        match = re.search(pattern, message, re.IGNORECASE)
-        if match:
-            current_profile["occupation"] = match.group(1).strip()
-            break
+    # חילוץ מיקום - רק ערים/מקומות
+    if any(phrase in message_lower for phrase in ['אני מ', 'גר ב', 'נמצא ב', 'מ']):
+        for pattern in AUTO_DETECTION_PATTERNS["location"]:
+            match = re.search(pattern, message, re.IGNORECASE)
+            if match:
+                location = match.group(1).strip()
+                # בדיקה שזה לא הודעה ארוכה
+                if len(location) < 30 and not any(word in location.lower() for word in ['שיווק', 'עסק', 'לקוח', 'שירות']):
+                    current_profile["location"] = location
+                    break
     
-    # חילוץ תקציב
-    for pattern in AUTO_DETECTION_PATTERNS["budget"]:
-        match = re.search(pattern, message, re.IGNORECASE)
-        if match:
-            current_profile["budget"] = match.group(1).strip()
-            break
+    # חילוץ תחום עיסוק - רק אם ברור
+    if any(phrase in message_lower for phrase in ['אני עובד', 'עובד כ', 'תחום', 'מקצוע']):
+        for pattern in AUTO_DETECTION_PATTERNS["occupation"]:
+            match = re.search(pattern, message, re.IGNORECASE)
+            if match:
+                occupation = match.group(1).strip()
+                if len(occupation) < 50:  # מקצוע לא יכול להיות ארוך
+                    current_profile["occupation"] = occupation
+                    break
     
-    # חילוץ לוח זמנים
-    for pattern in AUTO_DETECTION_PATTERNS["timeline"]:
-        match = re.search(pattern, message, re.IGNORECASE)
-        if match:
-            current_profile["timeline"] = match.group(1).strip()
-            break
+    # חילוץ תקציב - רק אם ברור
+    if any(phrase in message_lower for phrase in ['תקציב', 'עד', 'בין', '₪', 'שקל']):
+        for pattern in AUTO_DETECTION_PATTERNS["budget"]:
+            match = re.search(pattern, message, re.IGNORECASE)
+            if match:
+                budget = match.group(1).strip()
+                if len(budget) < 30:  # תקציב לא יכול להיות ארוך
+                    current_profile["budget"] = budget
+                    break
+    
+    # חילוץ לוח זמנים - רק אם ברור
+    if any(phrase in message_lower for phrase in ['עד', 'בתוך', 'לפני', 'מתי']):
+        for pattern in AUTO_DETECTION_PATTERNS["timeline"]:
+            match = re.search(pattern, message, re.IGNORECASE)
+            if match:
+                timeline = match.group(1).strip()
+                if len(timeline) < 30:  # לוח זמנים לא יכול להיות ארוך
+                    current_profile["timeline"] = timeline
+                    break
     
     return current_profile
 

@@ -68,6 +68,13 @@ from .conversation_flow import (
     get_conversation_flow_guidance
 )
 
+from .learning_system import (
+    analyze_company_feedback,
+    generate_learning_instructions,
+    get_company_learning_instructions,
+    get_company_feedback_summary
+)
+
 __all__ = [
     # General instructions
     "GENERAL_INSTRUCTIONS",
@@ -124,5 +131,11 @@ __all__ = [
     "get_natural_transition",
     "get_natural_bridge",
     "should_use_bridge",
-    "get_conversation_flow_guidance"
+    "get_conversation_flow_guidance",
+    
+    # Learning system
+    "analyze_company_feedback",
+    "generate_learning_instructions",
+    "get_company_learning_instructions",
+    "get_company_feedback_summary"
 ]
