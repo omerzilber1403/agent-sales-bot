@@ -9,45 +9,8 @@ const ChatInterface = ({ company, customer, sessionId, onStatsUpdate }) => {
 
   useEffect(() => {
     if (sessionId) {
-      // Generate personalized welcome message based on company data
-      const generateWelcomeMessage = () => {
-        if (!company) {
-          return 'שלום! אני נציג המכירות החכם שלך. איך אני יכול לעזור לך היום?'
-        }
-
-        const companyName = company.name || 'החברה'
-        const oneLineValue = company.one_line_value || ''
-        const products = company.products || []
-        
-        // Build personalized greeting
-        let greeting = `שלום! אני נציג המכירות של ${companyName}. `
-        
-        if (oneLineValue) {
-          greeting += `${oneLineValue} `
-        }
-        
-        if (products && products.length > 0) {
-          const productNames = products
-            .filter(p => p.name && p.name.trim())
-            .map(p => p.name)
-            .slice(0, 2) // Show max 2 products
-          
-          if (productNames.length > 0) {
-            greeting += `אני כאן לעזור לך עם ${productNames.join(' ו-')}. `
-          }
-        }
-        
-        greeting += 'איך אני יכול לעזור לך היום?'
-        
-        return greeting
-      }
-
-      setMessages([{
-        id: 'welcome',
-        role: 'bot',
-        content: generateWelcomeMessage(),
-        timestamp: new Date()
-      }])
+      // Don't send automatic welcome message - wait for user to send first message
+      setMessages([])
       setExecutionPath(['שיחה חדשה התחילה'])
     }
   }, [sessionId, company])

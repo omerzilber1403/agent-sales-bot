@@ -9,6 +9,7 @@ from ..instructions import (
     SALES_STRATEGY_INSTRUCTIONS,
     IMPORTANT_RULES,
     OPENING_MESSAGE_RULE,
+    INFORMATION_FIRST_APPROACH,
     B2C_SPECIFIC_INSTRUCTIONS,
     B2C_QUESTION_GUIDELINES,
     B2B_SPECIFIC_INSTRUCTIONS,
@@ -147,6 +148,8 @@ def create_sales_graph(company_data: Dict[str, Any] = None):
 
 {B2C_QUESTION_GUIDELINES}
 
+{INFORMATION_FIRST_APPROACH}
+
 {OPENING_MESSAGE_RULE}
 
 תגובה להודעת הלקוח: {state["messages"][-1].content}"""
@@ -192,6 +195,8 @@ def create_sales_graph(company_data: Dict[str, Any] = None):
 {SALES_STRATEGY_INSTRUCTIONS}
 
 {B2C_QUESTION_GUIDELINES}
+
+{INFORMATION_FIRST_APPROACH}
 
 תגובה להודעת הלקוח: {state["messages"][-1].content}"""
 
@@ -295,6 +300,8 @@ def create_sales_graph(company_data: Dict[str, Any] = None):
 
 {B2B_QUESTION_GUIDELINES}
 
+{INFORMATION_FIRST_APPROACH}
+
 {OPENING_MESSAGE_RULE}
 
 תגובה להודעת הלקוח: {state["messages"][-1].content}"""
@@ -340,6 +347,8 @@ def create_sales_graph(company_data: Dict[str, Any] = None):
 {SALES_STRATEGY_INSTRUCTIONS}
 
 {B2B_QUESTION_GUIDELINES}
+
+{INFORMATION_FIRST_APPROACH}
 
 תגובה להודעת הלקוח: {state["messages"][-1].content}"""
 

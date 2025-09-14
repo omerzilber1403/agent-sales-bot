@@ -14,11 +14,8 @@ def get_template_response(template_name: str, company_data: dict = None) -> str:
     קבל תגובה מתאימה לתבנית
     """
     if template_name == "greeting":
-        if company_data:
-            company_name = company_data.get("name", "החברה")
-            return f"שלום! איך אני יכול לעזור לך?"
-        else:
-            return "שלום! איך אני יכול לעזור לך?"
+        # הודעת פתיחה קצרה בלבד - אל תשלח מידע ארוך
+        return "שלום! איך אני יכול לעזור לך?"
     elif template_name == "thanks":
         return "בשמחה! יש עוד משהו שאני יכול לעזור בו?"
     elif template_name == "goodbye":
