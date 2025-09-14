@@ -5,6 +5,11 @@ const ChatInterface = ({ company, customer, sessionId, onStatsUpdate }) => {
   const [inputMessage, setInputMessage] = useState('')
   const [sending, setSending] = useState(false)
   const [executionPath, setExecutionPath] = useState([])
+  const [typing, setTyping] = useState(false)
+  const [messageStatus, setMessageStatus] = useState('')
+  const [messageCount, setMessageCount] = useState(0)
+  const [newMessageCount, setNewMessageCount] = useState(0)
+  const [connectionStatus, setConnectionStatus] = useState('connected')
   const messagesEndRef = useRef(null)
 
   useEffect(() => {
@@ -17,7 +22,28 @@ const ChatInterface = ({ company, customer, sessionId, onStatsUpdate }) => {
 
   useEffect(() => {
     scrollToBottom()
+    setMessageCount(messages.length)
+    
+    // Count new messages (not user messages)
+    const botMessages = messages.filter(msg => msg.role === 'bot')
+    setNewMessageCount(botMessages.length)
   }, [messages])
+
+  // Check connection status
+  useEffect(() => {
+    const checkConnection = async () => {
+      try {
+        const response = await fetch('http://localhost:8080/health')
+        setConnectionStatus(response.ok ? 'connected' : 'disconnected')
+      } catch {
+        setConnectionStatus('disconnected')
+      }
+    }
+    
+    checkConnection()
+    const interval = setInterval(checkConnection, 30000) // Check every 30 seconds
+    return () => clearInterval(interval)
+  }, [])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -31,12 +57,15 @@ const ChatInterface = ({ company, customer, sessionId, onStatsUpdate }) => {
       id: Date.now(),
       role: 'user',
       content: messageText,
-      timestamp: new Date()
+      timestamp: new Date(),
+      status: 'sent'
     }
 
     setMessages(prev => [...prev, userMessage])
     setInputMessage('')
     setSending(true)
+    setTyping(true)
+    setMessageStatus('שולח הודעה...')
 
     try {
       const response = await fetch('http://localhost:8080/api/v1/agent/reply', {
@@ -54,6 +83,8 @@ const ChatInterface = ({ company, customer, sessionId, onStatsUpdate }) => {
       if (response.ok) {
         const data = await response.json()
         
+        setMessageStatus('מקבל תשובה...')
+        
         const botMessage = {
           id: Date.now() + 1,
           role: 'bot',
@@ -62,7 +93,9 @@ const ChatInterface = ({ company, customer, sessionId, onStatsUpdate }) => {
           handoff: data.handoff,
           handoffReason: data.handoff_reason,
           tone: data.tone,
-          executionPath: data.execution_path
+          executionPath: data.execution_path,
+          status: 'delivered',
+          quality: data.handoff ? 'handoff' : 'good'
         }
 
         setMessages(prev => [...prev, botMessage])
@@ -75,6 +108,8 @@ const ChatInterface = ({ company, customer, sessionId, onStatsUpdate }) => {
         if (onStatsUpdate) {
           onStatsUpdate()
         }
+        
+        setMessageStatus('')
       } else {
         const errorMessage = {
           id: Date.now() + 1,
@@ -97,6 +132,8 @@ const ChatInterface = ({ company, customer, sessionId, onStatsUpdate }) => {
       setMessages(prev => [...prev, errorMessage])
     } finally {
       setSending(false)
+      setTyping(false)
+      setMessageStatus('')
     }
   }
 
@@ -170,18 +207,29 @@ const ChatInterface = ({ company, customer, sessionId, onStatsUpdate }) => {
         <div className="chat-title">
           <span className="chat-icon">💬</span>
           צ'אט - {customer.name || customer.external_id}
+          {messageCount > 0 && (
+            <span className="message-count-badge">
+              {messageCount} הודעות
+            </span>
+          )}
         </div>
-        {executionPath.length > 0 && (
-          <div style={{ 
-            fontSize: '0.85rem', 
-            color: '#718096',
-            background: '#f7fafc',
-            padding: '4px 8px',
-            borderRadius: '12px'
-          }}>
-            מסלול: {executionPath.join(' → ')}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {executionPath.length > 0 && (
+            <div style={{ 
+              fontSize: '0.85rem', 
+              color: '#718096',
+              background: '#f7fafc',
+              padding: '4px 8px',
+              borderRadius: '12px'
+            }}>
+              מסלול: {executionPath.join(' → ')}
+            </div>
+          )}
+          <div className={`connection-status ${connectionStatus}`}>
+            <span className="status-dot"></span>
+            {connectionStatus === 'connected' ? 'מחובר' : 'מנותק'}
           </div>
-        )}
+        </div>
       </div>
 
       <div className="chat-messages">
@@ -224,17 +272,33 @@ const ChatInterface = ({ company, customer, sessionId, onStatsUpdate }) => {
                     {message.tone}
                   </span>
                 )}
+                {message.quality && (
+                  <span style={{ 
+                    background: message.quality === 'handoff' ? '#fed7d7' : '#c6f6d5',
+                    color: message.quality === 'handoff' ? '#c53030' : '#2f855a',
+                    padding: '2px 6px',
+                    borderRadius: '8px',
+                    fontSize: '0.7rem',
+                    fontWeight: '600'
+                  }}>
+                    {message.quality === 'handoff' ? 'HANDOFF' : '✓'}
+                  </span>
+                )}
               </div>
             </div>
           </div>
         ))}
-        {sending && (
+        {typing && (
           <div className="message bot">
             <div className="message-avatar">🤖</div>
             <div className="message-content">
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div className="spinner"></div>
-                כותב תשובה...
+                <div className="typing-indicator">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+                {messageStatus || 'כותב תשובה...'}
               </div>
             </div>
           </div>

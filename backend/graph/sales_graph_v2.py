@@ -19,7 +19,19 @@ from ..instructions import (
     should_handoff_with_llm,
     HANDOFF_RESPONSE,
     get_template_response,
-    match_template
+    match_template,
+    get_smart_question,
+    get_contextual_question,
+    should_ask_question,
+    extract_customer_info,
+    get_next_profiling_question,
+    should_continue_profiling,
+    get_customer_summary,
+    get_conversation_stage,
+    get_natural_transition,
+    get_natural_bridge,
+    should_use_bridge,
+    get_conversation_flow_guidance
 )
 import json
 
@@ -48,6 +60,9 @@ class AgentState(TypedDict):
     tone: str
     execution_path: List[str]
     company_data: Dict[str, Any]
+    customer_profile: Dict[str, Any]
+    conversation_stage: str
+    message_count: int
 
 def create_sales_graph(company_data: Dict[str, Any] = None):
     """Create the sales agent graph with customer profiling and company data"""
@@ -95,6 +110,35 @@ def create_sales_graph(company_data: Dict[str, Any] = None):
         
         print(f"🔍 process_message_templates result: response_length={len(result.get('response', ''))}")
         return result
+
+    def update_customer_profile(state: AgentState) -> AgentState:
+        """Update customer profile with extracted information"""
+        
+        user_message = state["messages"][-1].content
+        current_profile = state.get("customer_profile", {})
+        
+        print(f"👤 update_customer_profile: extracting info from: {user_message[:50]}...")
+        
+        # Extract customer information
+        updated_profile = extract_customer_info(user_message, current_profile)
+        
+        # Update conversation stage
+        conversation_history = [{"content": msg.content, "role": "user" if isinstance(msg, HumanMessage) else "bot"} 
+                              for msg in state["messages"]]
+        current_stage = get_conversation_stage(conversation_history, user_message)
+        
+        # Update message count
+        message_count = state.get("message_count", 0) + 1
+        
+        print(f"👤 update_customer_profile: stage={current_stage}, profile={updated_profile}")
+        
+        return {
+            **state,
+            "customer_profile": updated_profile,
+            "conversation_stage": current_stage,
+            "message_count": message_count,
+            "execution_path": state.get("execution_path", []) + ["profile_updated"]
+        }
     
     def b2c_sales_agent(state: AgentState) -> AgentState:
         """B2C sales agent with friendly and personal approach"""
@@ -116,6 +160,11 @@ def create_sales_graph(company_data: Dict[str, Any] = None):
         
         # Get company-specific fields to collect
         custom_fields = company_data.get("custom_fields", {}) if company_data else {}
+        
+        # Get customer profile and conversation context
+        customer_profile = state.get("customer_profile", {})
+        conversation_stage = state.get("conversation_stage", "greeting")
+        message_count = state.get("message_count", 0)
         
         # Build system prompt for B2C approach
         if company_data and company_data.get("custom_prompt"):
@@ -461,14 +510,16 @@ def create_sales_graph(company_data: Dict[str, Any] = None):
     # Add nodes with improved names
     workflow.add_node("check_handoff_requirement", check_handoff_requirement)
     workflow.add_node("process_message_templates", process_message_templates)
+    workflow.add_node("update_customer_profile", update_customer_profile)
     workflow.add_node("b2c_sales_agent", b2c_sales_agent)
     workflow.add_node("b2b_sales_agent", b2b_sales_agent)
     workflow.add_node("generate_handoff_response", generate_handoff_response)
     
     # Add edges
     workflow.add_edge("check_handoff_requirement", "process_message_templates")
+    workflow.add_edge("process_message_templates", "update_customer_profile")
     workflow.add_conditional_edges(
-        "process_message_templates",
+        "update_customer_profile",
         business_type_router,
         {
             "b2c_sales_agent": "b2c_sales_agent",

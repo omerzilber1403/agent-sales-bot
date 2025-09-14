@@ -37,6 +37,37 @@ from .template_instructions import (
     match_template
 )
 
+from .smart_questions import (
+    SMART_QUESTIONS,
+    FOLLOW_UP_QUESTIONS,
+    CUSTOMER_TYPE_QUESTIONS,
+    PRODUCT_QUESTIONS,
+    get_smart_question,
+    get_contextual_question,
+    should_ask_question
+)
+
+from .customer_profiling import (
+    CUSTOMER_PROFILE_FIELDS,
+    PROFILING_QUESTIONS,
+    AUTO_DETECTION_PATTERNS,
+    extract_customer_info,
+    get_next_profiling_question,
+    should_continue_profiling,
+    get_customer_summary
+)
+
+from .conversation_flow import (
+    CONVERSATION_STAGES,
+    NATURAL_TRANSITIONS,
+    NATURAL_BRIDGES,
+    get_conversation_stage,
+    get_natural_transition,
+    get_natural_bridge,
+    should_use_bridge,
+    get_conversation_flow_guidance
+)
+
 __all__ = [
     # General instructions
     "GENERAL_INSTRUCTIONS",
@@ -65,5 +96,33 @@ __all__ = [
     # Template instructions
     "TEMPLATE_PATTERNS",
     "get_template_response",
-    "match_template"
+    "match_template",
+    
+    # Smart questions
+    "SMART_QUESTIONS",
+    "FOLLOW_UP_QUESTIONS",
+    "CUSTOMER_TYPE_QUESTIONS",
+    "PRODUCT_QUESTIONS",
+    "get_smart_question",
+    "get_contextual_question",
+    "should_ask_question",
+    
+    # Customer profiling
+    "CUSTOMER_PROFILE_FIELDS",
+    "PROFILING_QUESTIONS",
+    "AUTO_DETECTION_PATTERNS",
+    "extract_customer_info",
+    "get_next_profiling_question",
+    "should_continue_profiling",
+    "get_customer_summary",
+    
+    # Conversation flow
+    "CONVERSATION_STAGES",
+    "NATURAL_TRANSITIONS",
+    "NATURAL_BRIDGES",
+    "get_conversation_stage",
+    "get_natural_transition",
+    "get_natural_bridge",
+    "should_use_bridge",
+    "get_conversation_flow_guidance"
 ]
