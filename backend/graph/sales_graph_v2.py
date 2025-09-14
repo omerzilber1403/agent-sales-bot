@@ -10,6 +10,7 @@ from ..instructions import (
     IMPORTANT_RULES,
     OPENING_MESSAGE_RULE,
     INFORMATION_FIRST_APPROACH,
+    PRICING_AND_PRODUCTS_RULES,
     B2C_SPECIFIC_INSTRUCTIONS,
     B2C_QUESTION_GUIDELINES,
     B2B_SPECIFIC_INSTRUCTIONS,
@@ -150,6 +151,8 @@ def create_sales_graph(company_data: Dict[str, Any] = None):
 
 {INFORMATION_FIRST_APPROACH}
 
+{PRICING_AND_PRODUCTS_RULES}
+
 {OPENING_MESSAGE_RULE}
 
 תגובה להודעת הלקוח: {state["messages"][-1].content}"""
@@ -165,7 +168,18 @@ def create_sales_graph(company_data: Dict[str, Any] = None):
                 
                 products_info = ""
                 if products:
-                    products_list = [f"- {p.get('name', '')}: {p.get('description', '')}" for p in products if isinstance(p, dict)]
+                    products_list = []
+                    for p in products:
+                        if isinstance(p, dict) and p.get('name'):
+                            name = p.get('name', '')
+                            description = p.get('summary', '') or p.get('description', '')
+                            price = p.get('base_price', '')
+                            
+                            if price:
+                                products_list.append(f"- {name}: {description} - {price} ₪")
+                            else:
+                                products_list.append(f"- {name}: {description}")
+                    
                     if products_list:
                         products_info = f"""
 מוצרים/שירותים:
@@ -197,6 +211,8 @@ def create_sales_graph(company_data: Dict[str, Any] = None):
 {B2C_QUESTION_GUIDELINES}
 
 {INFORMATION_FIRST_APPROACH}
+
+{PRICING_AND_PRODUCTS_RULES}
 
 תגובה להודעת הלקוח: {state["messages"][-1].content}"""
 
@@ -302,6 +318,8 @@ def create_sales_graph(company_data: Dict[str, Any] = None):
 
 {INFORMATION_FIRST_APPROACH}
 
+{PRICING_AND_PRODUCTS_RULES}
+
 {OPENING_MESSAGE_RULE}
 
 תגובה להודעת הלקוח: {state["messages"][-1].content}"""
@@ -317,7 +335,18 @@ def create_sales_graph(company_data: Dict[str, Any] = None):
                 
                 products_info = ""
                 if products:
-                    products_list = [f"- {p.get('name', '')}: {p.get('description', '')}" for p in products if isinstance(p, dict)]
+                    products_list = []
+                    for p in products:
+                        if isinstance(p, dict) and p.get('name'):
+                            name = p.get('name', '')
+                            description = p.get('summary', '') or p.get('description', '')
+                            price = p.get('base_price', '')
+                            
+                            if price:
+                                products_list.append(f"- {name}: {description} - {price} ₪")
+                            else:
+                                products_list.append(f"- {name}: {description}")
+                    
                     if products_list:
                         products_info = f"""
 מוצרים/שירותים:
@@ -349,6 +378,8 @@ def create_sales_graph(company_data: Dict[str, Any] = None):
 {B2B_QUESTION_GUIDELINES}
 
 {INFORMATION_FIRST_APPROACH}
+
+{PRICING_AND_PRODUCTS_RULES}
 
 תגובה להודעת הלקוח: {state["messages"][-1].content}"""
 

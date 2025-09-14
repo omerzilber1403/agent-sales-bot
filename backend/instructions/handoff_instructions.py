@@ -51,7 +51,19 @@ def should_handoff_with_llm(message_content: str) -> bool:
     if is_sales_question:
         return False
     
-    # השתמש ב-LLM כדי להבין את הכוונה
+    # בדוק אם זו שאלה כללית על החברה/השירות (לא דורשת העברה)
+    general_questions = [
+        "מי אתם", "מה אתם עושים", "איך זה עובד", "מה התהליך",
+        "איך התהליך", "איך עובד", "מה השירות", "מה המוצר",
+        "איך זה מתחיל", "איך מתחילים", "מה כולל", "מה היתרונות"
+    ]
+    
+    is_general_question = any(question in message_lower for question in general_questions)
+    
+    if is_general_question:
+        return False
+    
+    # השתמש ב-LLM כדי להבין את הכוונה רק אם זה לא שאלה כללית
     prompt = f"""בדוק אם ההודעה הבאה מבקשת לדבר עם נציג אנושי או מישהו אמיתי:
 
 הודעה: "{message_content}"
