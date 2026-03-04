@@ -1,0 +1,34 @@
+# Render.com deployment configuration
+# https://render.com/docs/render-yaml-spec
+#
+# How to deploy:
+# 1. Push agent-sales-bot to a GitHub repo (if not already)
+# 2. Go to render.com → New → Web Service → Connect your repo
+# 3. Set the required env vars in the Render dashboard:
+#    - OPENAI_API_KEY   (required)
+#    - CORS_ORIGINS     (set to your Netlify URL, e.g. https://yoursite.netlify.app)
+# 4. Copy the Render URL and set it as NEXT_PUBLIC_SALES_BOT_API in Netlify
+
+services:
+  - type: web
+    name: agent-sales-bot
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -c "from backend.database.init_db import init_db; init_db()" && uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHONPATH
+        value: /opt/render/project/src
+      - key: LLM_PROVIDER
+        value: openai
+      - key: OPENAI_MODEL
+        value: gpt-4o-mini
+      - key: OPENAI_API_KEY
+        # Set this in Render dashboard — do NOT hardcode
+        sync: false
+      - key: CORS_ORIGINS
+        # Set to your Netlify domain, e.g. https://yoursite.netlify.app
+        # Or use "*" to allow all origins (no credentials)
+        value: "*"
+      - key: ENV
+        value: production

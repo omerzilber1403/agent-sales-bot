@@ -1,4 +1,4 @@
-﻿fastapi
+fastapi
 uvicorn[standard]
 pydantic-settings
 PyYAML
@@ -6,7 +6,8 @@ loguru
 httpx
 tenacity
 langgraph
+langchain-core
+openai
 sqlalchemy
 alembic
-sqlite3
 python-multipart

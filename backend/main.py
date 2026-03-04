@@ -15,11 +15,13 @@ class JSONUTF8Response(JSONResponse):
 
 app = FastAPI(title="AGENT Backend", version="0.3", default_response_class=JSONUTF8Response)
 
-# Add CORS middleware
+# Add CORS middleware — origins configurable via CORS_ORIGINS env var
+_settings = get_settings()
+_origins = [o.strip() for o in _settings.CORS_ORIGINS.split(",")]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"],
-    allow_credentials=True,
+    allow_origins=_origins,
+    allow_credentials=("*" not in _origins),  # credentials can't be used with wildcard
     allow_methods=["*"],
     allow_headers=["*"],
 )

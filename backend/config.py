@@ -22,6 +22,10 @@ class Settings(BaseSettings):
     OLLAMA_HOST: str = "http://127.0.0.1:11434"
     OLLAMA_MODEL: Optional[str] = None  # למשל: llama3.2:3b
 
+    # CORS — comma-separated origins. Use "*" to allow all (no credentials).
+    # Example: https://myapp.netlify.app,http://localhost:3000
+    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173"
+
 @lru_cache
 def get_settings() -> Settings:
     settings = Settings()
