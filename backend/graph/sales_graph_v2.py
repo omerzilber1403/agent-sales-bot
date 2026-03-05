@@ -426,12 +426,12 @@ def create_sales_graph(company_data: Dict[str, Any] = None):
 
             user_msg = state["messages"][-1].content
             lang_override = (
-                "\n⚠️ FINAL OVERRIDE (Hebrew + Length): The user's message is in Hebrew. "
+                "\n⚠️ LANGUAGE OVERRIDE: The user's message is in Hebrew. "
                 "Your ENTIRE response MUST be in Hebrew only — no English words. "
-                "Maximum 40 words. No bullet points. No bold. One short paragraph only."
+                "No bullet points. No bold. Plain paragraphs only."
                 if _contains_hebrew(user_msg) else
-                "\n⚠️ FINAL OVERRIDE (Length): Respond in English only. "
-                "Maximum 40 words. No bullet points. No bold. One short paragraph only."
+                "\n⚠️ LANGUAGE OVERRIDE: Respond in English only. "
+                "No bullet points. No bold. Plain paragraphs only."
             )
 
             system_prompt = f"""{lang_instruction}
@@ -603,15 +603,27 @@ Respond to: {state["messages"][-1].content}"""
                     f"This rule applies every single time a product is mentioned. No exceptions.\n"
                     f"8. Closing Question — MANDATORY: EVERY response must end with a strong, sales-qualifying "
                     f"question that moves this lead closer to a human handoff or demo booking. "
-                    f"NEVER end with passive phrases like 'Do you have any more questions?' or "
-                    f"'Is there anything else I can help with?' or 'Feel free to ask.' "
+                    f"NEVER end with passive phrases like 'Do you have any more questions?', "
+                    f"'יש לך עוד שאלות?', 'Is there anything else I can help with?', or 'Feel free to ask.' "
                     f"These are conversation killers. Instead, use BANT-style qualifying questions or a direct "
                     f"demo push. Choose the question that best fits the current conversation stage. Examples: "
                     f"'How many employees in your organization are currently using AI tools like ChatGPT or Copilot?' "
                     f"'Are your current DLP tools flagging AI-generated data exfiltration attempts, or is that a blind spot right now?' "
                     f"'What does your current data security stack look like — are you running anything for cloud or endpoint DLP?' "
                     f"'Would it make sense to set up a 15-minute call with one of our security architects to walk through a live demo?' "
-                    f"The closing question must feel natural and advance the deal. It is not optional."
+                    f"The closing question is not optional and overrides any word-count limit set elsewhere.\n"
+                    f"8a. Disengagement Pivot — CRITICAL: if the lead gives a short, closing, or dismissive response "
+                    f"('no', 'nothing', 'ok', 'thanks', 'לא', 'בסדר', 'תודה', or any similarly short reply that signals "
+                    f"the conversation is winding down), do NOT accept it and go passive. "
+                    f"This is your handoff window. Pivot immediately with energy: acknowledge their answer in one "
+                    f"sentence, then push directly for a demo or human handoff. "
+                    f"Example pivot: 'מעולה — כיסינו את הליבה של מה שפורספוינט יכולה לעשות בשבילכם. "
+                    f"הצעד הבא הגיוני הוא שיחה קצרה של 15 דקות עם אחד מהאדריכלים שלנו כדי שתוכל לראות את "
+                    f"הפלטפורמה מטפלת בדיוק בתרחיש שלכם — האם יתאים לך השבוע, או שעדיף שאעביר את פרטיך לצוות שלנו עכשיו?' "
+                    f"In English: 'Perfect — we covered the core. The next step is a 15-minute call with one of our "
+                    f"security architects to see the platform handle your exact scenario. Would this week work, "
+                    f"or should I pass your details to our team now?' "
+                    f"Never let a short reply be the last word."
                 )
             })
 
