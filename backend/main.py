@@ -9,6 +9,7 @@ from .routes.company_dashboard import router as company_dashboard_router
 from .routes.dev import router as dev_router
 from .routes.feedback import router as feedback_router
 from .config import get_settings
+from .database.init_db import init_db, seed_all
 
 class JSONUTF8Response(JSONResponse):
     media_type = "application/json; charset=utf-8"
@@ -26,6 +27,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.on_event("startup")
+async def startup():
+    """Initialize DB tables and seed demo companies on every startup."""
+    init_db()
+    seed_all()
+
 @app.get("/health")
 async def health():
     s = get_settings()
@@ -40,4 +47,3 @@ app.include_router(admin_router)
 app.include_router(company_dashboard_router)
 app.include_router(dev_router)
 app.include_router(feedback_router, prefix="/api/v1/feedback", tags=["feedback"])
-

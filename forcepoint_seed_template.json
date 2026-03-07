@@ -1,0 +1,171 @@
+{
+  "_instructions": {
+    "purpose": "Seed data for Forcepoint as a real demo company in the agent-sales-bot.",
+    "how_to_use": "Scrape forcepoint.com and fill every field marked with '>>> SCRAPE:'.",
+    "after_filling": "Pass this JSON to seed_forcepoint() in init_db.py or POST to /api/v1/admin/companies."
+  },
+
+  "name": "Forcepoint",
+  "domain": "forcepoint.com",
+  "locale": "en-US",
+  "timezone": "America/Chicago",
+  "currency": "USD",
+  "business_type": "B2B",
+
+  "one_line_value": ">>> SCRAPE: Hero headline from forcepoint.com homepage — 1 sentence, the core value prop.",
+
+  "brand_voice": {
+    "style": ">>> SCRAPE: Tone from website copy — e.g. 'authoritative, expert, direct — enterprise-grade'",
+    "emoji_policy": "none",
+    "closing_tone": "schedule_demo",
+    "language": "English, enterprise B2B",
+    "avoid": ">>> SCRAPE: Any tone/topics explicitly avoided in their copy"
+  },
+
+  "icp": {
+    "company_size": ">>> SCRAPE: Target org size from 'who we serve' / solution pages — e.g. '1,000+ employees'",
+    "industries": [">>> SCRAPE: verticals listed on /industries page — e.g. 'Government', 'Financial Services', 'Healthcare'"],
+    "buyer_roles": ["CISO", "VP of Security", "IT Security Director", ">>> SCRAPE: add any roles mentioned in case studies"],
+    "growth_stage": "Enterprise & mid-market with regulated data",
+    "pain_trigger": ">>> SCRAPE: The triggering event described in their messaging — e.g. 'data breach, compliance mandate, insider threat incident'"
+  },
+
+  "pain_points": [
+    ">>> SCRAPE: Pain point 1 from /solutions or /why-forcepoint page",
+    ">>> SCRAPE: Pain point 2",
+    ">>> SCRAPE: Pain point 3",
+    ">>> SCRAPE: Pain point 4",
+    ">>> SCRAPE: Pain point 5 — keep to 5-7 max"
+  ],
+
+  "products": [
+    {
+      "id": "data_security",
+      "name": ">>> SCRAPE: Exact product name from /products page",
+      "summary": ">>> SCRAPE: One-line product summary from product card or hero",
+      "base_price": "Contact for pricing",
+      "details": ">>> SCRAPE: Full product description — key capabilities, what it protects, integrations",
+      "addons": ">>> SCRAPE: Add-ons or modules listed on the product page"
+    },
+    {
+      "id": "web_security",
+      "name": ">>> SCRAPE: Exact product name",
+      "summary": ">>> SCRAPE: One-line summary",
+      "base_price": "Contact for pricing",
+      "details": ">>> SCRAPE: Full description",
+      "addons": ">>> SCRAPE: Add-ons"
+    },
+    {
+      "id": "network_security",
+      "name": ">>> SCRAPE: Exact product name",
+      "summary": ">>> SCRAPE: One-line summary",
+      "base_price": "Contact for pricing",
+      "details": ">>> SCRAPE: Full description",
+      "addons": ">>> SCRAPE: Add-ons"
+    },
+    {
+      "id": "cloud_security",
+      "name": ">>> SCRAPE: Exact product name (CASB / SSE / SASE if listed)",
+      "summary": ">>> SCRAPE: One-line summary",
+      "base_price": "Contact for pricing",
+      "details": ">>> SCRAPE: Full description",
+      "addons": ">>> SCRAPE: Add-ons"
+    },
+    {
+      "id": "insider_threat",
+      "name": ">>> SCRAPE: Exact product name for insider threat / behavioral analytics",
+      "summary": ">>> SCRAPE: One-line summary",
+      "base_price": "Contact for pricing",
+      "details": ">>> SCRAPE: Full description",
+      "addons": ">>> SCRAPE: Add-ons"
+    }
+  ],
+
+  "differentiators": [
+    ">>> SCRAPE: Differentiator 1 from /why-forcepoint or competitive comparison pages",
+    ">>> SCRAPE: Differentiator 2",
+    ">>> SCRAPE: Differentiator 3",
+    ">>> SCRAPE: Differentiator 4 — keep to 4-6 bullet points"
+  ],
+
+  "faq_kb_refs": [
+    {
+      "q": ">>> SCRAPE: FAQ question 1 from /faq or /resources",
+      "a": ">>> SCRAPE: Answer"
+    },
+    {
+      "q": ">>> SCRAPE: FAQ question 2",
+      "a": ">>> SCRAPE: Answer"
+    },
+    {
+      "q": ">>> SCRAPE: FAQ question 3",
+      "a": ">>> SCRAPE: Answer"
+    },
+    {
+      "q": "What compliance standards does Forcepoint support?",
+      "a": ">>> SCRAPE: Pull from /compliance or trust/certifications page — GDPR, HIPAA, FedRAMP, SOC 2, etc."
+    },
+    {
+      "q": "How does Forcepoint differ from legacy DLP tools?",
+      "a": ">>> SCRAPE: Pull from competitive or 'why us' messaging"
+    }
+  ],
+
+  "case_studies": [
+    {
+      "title": ">>> SCRAPE: Case study title from /customers or /case-studies",
+      "industry": ">>> SCRAPE: Industry vertical",
+      "result": ">>> SCRAPE: Key metric / outcome — e.g. '60% reduction in data breach risk'"
+    },
+    {
+      "title": ">>> SCRAPE: Case study 2 title",
+      "industry": ">>> SCRAPE: Industry",
+      "result": ">>> SCRAPE: Key result"
+    }
+  ],
+
+  "objections_playbook": [
+    {
+      "objection": "We already have a DLP solution.",
+      "response": ">>> SCRAPE: counter from competitive pages or sales materials"
+    },
+    {
+      "objection": "We're concerned about deployment complexity.",
+      "response": ">>> SCRAPE: response from /implementation or /getting-started pages"
+    },
+    {
+      "objection": "What's the ROI?",
+      "response": ">>> SCRAPE: Pull stats from ROI calculator or analyst reports if linked on site"
+    }
+  ],
+
+  "discovery_questions": [
+    ">>> SCRAPE: Question 1 — typically from /contact-sales or demo booking forms",
+    "What is your current data security stack?",
+    "Are you subject to any compliance mandates (GDPR, HIPAA, FedRAMP)?",
+    "Have you experienced a recent security incident or audit finding?",
+    "How many employees / endpoints do you need to protect?"
+  ],
+
+  "competitors_map": {
+    ">>> SCRAPE: Competitor 1 name (e.g. Symantec DLP)": ">>> SCRAPE: key differentiator vs them from /compare pages",
+    ">>> SCRAPE: Competitor 2 name (e.g. Microsoft Purview)": ">>> SCRAPE: key differentiator",
+    ">>> SCRAPE: Competitor 3 name (e.g. Zscaler)": ">>> SCRAPE: key differentiator"
+  },
+
+  "handoff_rules": {
+    "triggers": ["pricing negotiation", "enterprise contract", "legal questions", "security assessment request", "competitor comparison"],
+    "target_queue": "sales-team",
+    "user_msg_on_handoff": "I'm connecting you with a Forcepoint security specialist who will be in touch shortly."
+  },
+
+  "cta_type": "booking_link",
+  "booking_link": ">>> SCRAPE: URL of the 'Request a Demo' / 'Contact Sales' page",
+  "meeting_length_min": 30,
+
+  "custom_prompt": ">>> OPTIONAL: Any extra system prompt instructions specific to Forcepoint's sales motion (e.g. always push for a demo, never discuss pricing without qualification).",
+
+  "handoff_message": "Thank you for your interest. A Forcepoint security expert will reach out to you within one business day.",
+
+  "max_conversations": 1000
+}

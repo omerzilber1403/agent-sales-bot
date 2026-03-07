@@ -46,11 +46,11 @@ class CompanyCreate(BaseModel):
     qualification_rules: Optional[Dict[str, Any]] = None
     
     # Objections Playbook
-    objections_playbook: Optional[Dict[str, str]] = None
-    
+    objections_playbook: Optional[Any] = None
+
     # Handoff Rules
     handoff_rules: Optional[Dict[str, Any]] = None
-    
+
     # Plus fields (אופציונלי)
     differentiators: Optional[List[str]] = None
     competitors_map: Optional[Dict[str, str]] = None
@@ -120,8 +120,8 @@ class CompanyResponse(BaseModel):
     qualification_rules: Optional[Dict[str, Any]]
     
     # Objections Playbook
-    objections_playbook: Optional[Dict[str, str]]
-    
+    objections_playbook: Optional[Any]
+
     # Handoff Rules
     handoff_rules: Optional[Dict[str, Any]]
     

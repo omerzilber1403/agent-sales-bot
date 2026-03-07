@@ -5,7 +5,7 @@ from ..services.memory import store
 from ..services.database_service import get_database_service
 from ..services.customer_service import get_customer_service
 from ..database.connection import get_db
-from ..graph.sales_graph_v2 import create_sales_graph
+from ..graph.sales_graph_v2 import create_sales_graph, _strip_markdown
 from langchain_core.messages import HumanMessage, AIMessage
 import json
 
@@ -47,18 +47,22 @@ async def agent_reply(request: AgentRequest):
         customer_service = get_customer_service(db)
         print(f"DEBUG: Customer service OK")
     
-        # Create or get conversation
+        # Create or get conversation — requires only company_id + session_id
         print(f"DEBUG: Creating/getting conversation...")
         conversation = None
-        if request.company_id and request.user_id and request.session_id:
+        if request.company_id and request.session_id:
             print(f"DEBUG: Looking for existing conversation with session_id: {request.session_id}")
             conversation = db_service.get_conversation_by_session(request.session_id)
             if not conversation:
                 print(f"DEBUG: No existing conversation found, creating new one...")
-                # Create new conversation
+                # Resolve numeric user_id — default to 1 for demo/anonymous sessions
+                try:
+                    uid = int(request.user_id) if request.user_id else 1
+                except (ValueError, TypeError):
+                    uid = 1
                 conversation = db_service.create_conversation(
                     company_id=request.company_id,
-                    user_id=int(request.user_id),
+                    user_id=uid,
                     session_id=request.session_id,
                     channel=request.channel
                 )
@@ -66,7 +70,7 @@ async def agent_reply(request: AgentRequest):
             else:
                 print(f"DEBUG: Found existing conversation: {conversation.session_id}, ID: {conversation.id}")
         else:
-            print(f"DEBUG: Missing required fields for conversation")
+            print(f"DEBUG: Missing required fields for conversation (need company_id + session_id)")
         
         print(f"DEBUG: Using conversation: {conversation.session_id if conversation else 'None'}, ID: {conversation.id if conversation else 'None'}")
     
@@ -211,15 +215,9 @@ async def agent_reply(request: AgentRequest):
         
         print(f"DEBUG: Graph result: {result}")
         
-        # Extract the response
-        response_text = result.get("response", "אני לא מבין את השאלה שלך. איך אני יכול לעזור?")
-        
-        # Check if we should ask smart questions
-        if smart_questions and not any(keyword in request.message.lower() for keyword in ['שם', 'גיל', 'איפה', 'תפקיד', 'תקציב']):
-            # Add a smart question to the response
-            question = smart_questions[0]
-            response_text += f"\n\n{question}"
-        
+        # Extract the response — strip markdown regardless of which graph node generated it
+        response_text = _strip_markdown(result.get("response") or "אני לא מבין את השאלה שלך. איך אני יכול לעזור?")
+
         # Save message to database if we have a conversation
         if conversation:
             db_service.create_message(
@@ -253,7 +251,7 @@ async def agent_reply(request: AgentRequest):
         
         return AgentResponse(
             text=response_text,
-            handoff=result.get("handoff", False),
+            handoff=bool(result.get("handoff") or False),
             handoff_reason=result.get("handoff_reason"),
             tone=result.get("tone", "friendly"),
             execution_path=result.get("execution_path", [])

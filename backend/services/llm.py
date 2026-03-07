@@ -48,7 +48,7 @@ def chat(messages: List[Dict[str, str]], model: Optional[str] = None, **kwargs) 
         model=model,
         messages=messages,
         temperature=settings.LLM_TEMPERATURE,
-        max_tokens=settings.LLM_MAX_TOKENS,
+        max_completion_tokens=settings.LLM_MAX_TOKENS,
     )
     params.update(kwargs)
     

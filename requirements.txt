@@ -11,3 +11,4 @@ openai
 sqlalchemy
 alembic
 python-multipart
+passlib[bcrypt]
