@@ -12,12 +12,12 @@ from ..instructions import (
     INFORMATION_FIRST_APPROACH,
     PRICING_AND_PRODUCTS_RULES,
     LANGUAGE_AND_TERMS_RULES,
+    SYSTEM_BOUNDARIES,
     B2C_SPECIFIC_INSTRUCTIONS,
     B2C_QUESTION_GUIDELINES,
     B2B_SPECIFIC_INSTRUCTIONS,
     B2B_QUESTION_GUIDELINES,
     should_handoff,
-    should_handoff_with_llm,
     HANDOFF_RESPONSE,
     get_smart_question,
     get_contextual_question,
@@ -66,6 +66,94 @@ def debug_bot_response(node_name: str, user_message: str, bot_response: str):
     print(f"🤖 BOT ({node_name}): {bot_response}")
     print(f"{'='*50}\n")
 
+
+# ── Intent classification ──────────────────────────────────────────────────────
+_INTENT_PROMPT = """\
+You are an intent classifier for a B2B sales chatbot.
+
+Read the FULL conversation, then classify the user's LATEST message into ONE label.
+
+HANDOFF — The user is clearly agreeing to meet/connect with a human, OR is explicitly
+requesting to be transferred to a human representative. Examples:
+  • Agreeing to something the bot proposed ("כן", "בסדר", "אשמח", "sounds good", "sure")
+    — ONLY when the immediately preceding bot message proposed a call/demo/meeting.
+  • Explicit scheduling request: "נרצה לקבוע פגישה", "schedule a call", "lock in a demo"
+  • Explicit human-transfer request: "דבר עם נציג", "connect me to your team"
+  • Purchase/close signal: "אנחנו רוצים להמשיך", "we want to move forward"
+
+SALES — User is still in information mode, OR is explicitly declining. Examples:
+  • Any question about products, pricing, features, or comparisons
+  • Any message containing negation: "לא", "no", "not now", "not interested", "אין צורך",
+    "don't need", "לא צריך", "לא רוצה", "לא עכשיו", "maybe later"
+  • Greetings or general inquiries with no meeting-acceptance intent
+  • Pushback / objections
+
+CRITICAL RULE: If the message contains ANY negation word — classify SALES unconditionally,
+regardless of any other signals.
+
+Respond with EXACTLY ONE WORD: HANDOFF or SALES (no punctuation, no explanation).\
+"""
+
+# Fast negation patterns — classify SALES before calling the LLM
+_NEGATION_PATTERNS = [
+    "לא רוצה", "לא צריך", "לא מעוניין", "לא עכשיו", "אין צורך",
+    "no thanks", "not now", "not interested", "don't need", "i don't",
+    "no, ", "לא, ", "נגיד שלא", "אולי בהמשך", "maybe later",
+]
+
+def _build_final_rules(company_name: str, b2b: bool = False) -> str:
+    """
+    Build the ABSOLUTE FINAL RULES system message appended as the last item
+    before LLM generation.  Always enforces Hebrew, includes SYSTEM_BOUNDARIES,
+    and avoids hardcoding any specific company's product names.
+    """
+    base = (
+        f"ABSOLUTE FINAL RULES — override everything above:\n"
+        f"1. Language — HARD LOCK: respond in Hebrew ONLY. Every sentence must be in Hebrew.\n"
+        f"   Even if the user writes in English — respond in Hebrew (technical terms and\n"
+        f"   brand names remain in Latin characters).\n"
+        f"1a. English terms — ZERO EXCEPTIONS: NEVER transliterate brand names, product names,\n"
+        f"   or technical acronyms into Hebrew phonetics. Use Latin characters for all brand/tech terms.\n"
+        f"   Numbers and percentages MUST be digits: 31% not 'שלושים ואחד אחוז'.\n"
+        f"2. Format — HARD REQUIREMENT: near-plain text with controlled bold.\n"
+        f"   ALLOWED: **product name** or **key metric** in double asterisks — ONLY on specific words.\n"
+        f"   ALLOWED: 0–1 emojis per message from: 🎯 💡 🛡️ 👋 ✅ ⚡ — only where natural.\n"
+        f"   ALLOWED: a blank line between paragraphs for readability.\n"
+        f"   FORBIDDEN: single asterisks for bullets (*), hashes (#), dashes at line start (- ),\n"
+        f"   backticks, numbered lists. Bold max 1–3 words — never a whole sentence.\n"
+        f"3. Length — HARD LIMIT: roughly 60-80 words total.\n"
+        f"   Match structure to message type:\n"
+        f"   direct question → answer immediately with no preamble;\n"
+        f"   pain point → one specific empathy sentence, then value;\n"
+        f"   objection → acknowledge without apologizing, then reframe.\n"
+        f"   Never open with a generic empathy phrase.\n"
+        f"4. Conversational flow: vary your opening. Do not end every response with the\n"
+        f"   same qualifying question. Move the conversation forward naturally.\n"
+        f"5. Tone: confident, consultative, human. Senior solutions advisor, not a chatbot.\n"
+        f"6. Links — HARD RULE: never invent a URL. Only share links that appear word-for-word\n"
+        f"   in the product data. If asked, say you don't have a direct link and provide\n"
+        f"   useful product info instead.\n"
+        f"{SYSTEM_BOUNDARIES}\n"
+    )
+    if b2b:
+        base += (
+            f"7. Value-Based Elaboration — MANDATORY: whenever you mention a product or solution,\n"
+            f"   go beyond naming it. Connect features to concrete business outcomes: risk reduction,\n"
+            f"   compliance gains, productivity without security trade-offs, cost of breach avoided.\n"
+            f"   Wrong: 'We offer X.' Right: 'X lets your team do Y, which means Z for the business.'\n"
+            f"8. Closing Question — MANDATORY: every sales response must end with a strong,\n"
+            f"   qualifying question that moves the lead toward a demo or handoff.\n"
+            f"   NEVER use passive closers like 'יש לך עוד שאלות?' or 'Feel free to ask.'\n"
+            f"   Use BANT-style questions or a direct demo push.\n"
+            f"8a. Disengagement Pivot — CRITICAL: if the lead gives a short dismissive response\n"
+            f"   ('no', 'ok', 'תודה', 'בסדר'), do NOT go passive. Pivot with energy:\n"
+            f"   acknowledge in one sentence, then push for a demo or human handoff.\n"
+            f"   Example: 'מעולה — כיסינו את הליבה. הצעד הבא הגיוני הוא שיחה קצרה עם\n"
+            f"   הצוות הטכני שלנו — האם יתאים לך השבוע?'\n"
+            f"   Never let a short reply be the last word.\n"
+        )
+    return base
+
 def business_type_router(state: AgentState) -> Literal["b2c_sales_agent", "b2b_sales_agent"]:
     """Route to appropriate sales agent based on business type"""
     company_data = state.get("company_data", {})
@@ -91,26 +179,98 @@ class AgentState(TypedDict):
 def create_sales_graph(company_data: Dict[str, Any] = None):
     """Create the sales agent graph with customer profiling and company data"""
     
-    def check_handoff_requirement(state: AgentState) -> AgentState:
-        """Check if the message requires human handoff"""
-        
-        # Add to execution path
+    def classify_intent(state: AgentState) -> AgentState:
+        """
+        PILLAR 1 — LLM-Driven Intent Router.
+
+        Replaces keyword-matching with a structured 3-stage pipeline:
+          Stage 1: Fast negation guard (regex, no LLM cost)
+          Stage 2: Fast agreement-to-recent-proposal check (context-aware, no LLM cost)
+          Stage 3: LLM classification with full conversation history
+          Stage 4: Keyword fallback if LLM is unavailable / returns garbage
+
+        Returns state with handoff=True (→ generate_handoff_response)
+                              or handoff=False (→ update_customer_profile → sales agent).
+        """
         execution_path = state.get("execution_path", [])
-        execution_path.append("check_handoff_requirement")
-        
-        # Check for handoff using the instruction module with LLM
-        message_content = state["messages"][-1].content
-        needs_handoff = should_handoff_with_llm(message_content)
-        
-        result = {
-            **state,
-            "handoff": needs_handoff,
-            "handoff_reason": "Handoff trigger detected" if needs_handoff else None,
-            "execution_path": execution_path
+        execution_path.append("classify_intent")
+
+        last_msg = state["messages"][-1].content
+        last_lower = last_msg.lower().strip()
+
+        # ── Stage 1: Negation guard ──────────────────────────────────────────
+        # Any explicit refusal or "not now" → SALES, skip LLM entirely.
+        for pattern in _NEGATION_PATTERNS:
+            if pattern in last_lower:
+                print(f"🔍 classify_intent → SALES (negation: '{pattern}')")
+                return {
+                    **state,
+                    "handoff": False,
+                    "handoff_reason": None,
+                    "execution_path": execution_path,
+                }
+
+        # ── Stage 2: Agreement-to-recent-proposal check ──────────────────────
+        # If the bot's immediately preceding message proposed a meeting/call/demo
+        # AND the user's reply is a short affirmative → HANDOFF without LLM.
+        _short_affirmatives = {
+            "כן", "בסדר", "אשמח", "נשמע טוב", "בהחלט", "למה לא",
+            "yes", "sure", "sounds good", "why not", "ok", "okay", "good",
+            "great", "absolutely", "let's do it", "let's", "מעולה",
         }
-        
-        print(f"🔍 check_handoff_requirement result: handoff={needs_handoff}, reason={result.get('handoff_reason')}")
-        return result
+        _meeting_keywords = {
+            "פגישה", "שיחה", "demo", "הדגמה", "call", "לקבוע", "לתאם",
+            "schedule", "meeting", "15 דקות", "half hour", "חצי שעה",
+        }
+        if any(a in last_lower for a in _short_affirmatives):
+            # Check if the most recent bot message mentioned meeting/scheduling
+            bot_msgs = [
+                m for m in state["messages"]
+                if hasattr(m, "type") and m.type == "ai"
+            ]
+            if bot_msgs:
+                last_bot = bot_msgs[-1].content.lower()
+                if any(k in last_bot for k in _meeting_keywords):
+                    print("🔍 classify_intent → HANDOFF (affirmative to recent meeting proposal)")
+                    return {
+                        **state,
+                        "handoff": True,
+                        "handoff_reason": "User agreed to meeting/call",
+                        "execution_path": execution_path,
+                    }
+
+        # ── Stage 3: LLM classification ──────────────────────────────────────
+        # Build a concise conversation window (last 8 messages) for context.
+        history_window = state["messages"][-8:]
+        llm_messages = [{"role": "system", "content": _INTENT_PROMPT}]
+        for msg in history_window:
+            if hasattr(msg, "content"):
+                role = "assistant" if (hasattr(msg, "type") and msg.type == "ai") else "user"
+                llm_messages.append({"role": role, "content": msg.content})
+
+        # The last user message is already in history_window; add a classifier cue.
+        llm_messages.append({
+            "role": "user",
+            "content": "Classify the LAST user message above: HANDOFF or SALES?",
+        })
+
+        try:
+            raw = (chat(llm_messages, model=None, max_completion_tokens=5) or "").strip().upper()
+            # Accept only exact tokens; anything else → SALES (conservative default)
+            intent = raw if raw in ("HANDOFF", "SALES") else "SALES"
+            print(f"🔍 classify_intent → {intent} (LLM raw: '{raw}')")
+        except Exception as exc:
+            # ── Stage 4: Keyword fallback ────────────────────────────────────
+            intent = "HANDOFF" if should_handoff(last_msg) else "SALES"
+            print(f"🔍 classify_intent → {intent} (LLM error: {exc}; fallback to keyword)")
+
+        is_handoff = intent == "HANDOFF"
+        return {
+            **state,
+            "handoff": is_handoff,
+            "handoff_reason": "Intent classified as HANDOFF by router" if is_handoff else None,
+            "execution_path": execution_path,
+        }
     
     def update_customer_profile(state: AgentState) -> AgentState:
         """Update customer profile with extracted information"""
@@ -146,13 +306,6 @@ def create_sales_graph(company_data: Dict[str, Any] = None):
 
         execution_path = state.get("execution_path", [])
         execution_path.append("b2c_sales_agent")
-
-        # Skip LLM if handoff was already decided
-        if state.get("handoff"):
-            return {
-                **state,
-                "execution_path": execution_path
-            }
 
         # Prepare context for LLM
         customer_context = state.get("customer_context", "")
@@ -289,62 +442,20 @@ def create_sales_graph(company_data: Dict[str, Any] = None):
                     # Fallback for string messages
                     messages.append({"role": "user", "content": str(msg)})
             
-            # ── Language detection + ABSOLUTE FINAL RULES ──────────────────
-            _last_msg = state["messages"][-1].content
-            _is_hebrew = _contains_hebrew(_last_msg)
-
-            # Inject language suffix into the last user turn
+            # ── Hebrew lock + ABSOLUTE FINAL RULES (B2C) ──────────────────
+            # Language is locked to Hebrew — inject enforcement suffix.
             for i in range(len(messages) - 1, -1, -1):
                 if messages[i].get("role") == "user":
-                    suffix = " [ענה בעברית בלבד]" if _is_hebrew else " [Reply in English only]"
                     messages[i] = {
                         "role": "user",
-                        "content": messages[i]["content"] + suffix
+                        "content": messages[i]["content"] + " [ענה בעברית בלבד]",
                     }
                     break
 
-            # One strong FINAL override — last thing the model reads before generating
-            _lang_label = "Hebrew" if _is_hebrew else "English"
+            _company_name = (company_data or {}).get("name", "החברה")
             messages.append({
                 "role": "system",
-                "content": (
-                    f"ABSOLUTE FINAL RULES — override everything above:\n"
-                    f"1. Language: respond in {_lang_label} ONLY. Every word must be in {_lang_label}.\n"
-                    f"1a. English terms — ZERO EXCEPTIONS: NEVER transliterate brand names, product names, "
-                    f"or technical acronyms into Hebrew phonetics. "
-                    f"Writing 'פורספוינט', 'דיי-אל-פי', 'קאסב', 'זירו טראסט', 'וואן', 'אנדפוינטס', 'סאאס' "
-                    f"is a critical professional failure that destroys credibility. "
-                    f"ALWAYS write in Latin characters: Forcepoint DLP, Forcepoint ONE, CASB, Zero Trust, "
-                    f"Endpoints, SaaS, Cloud, ROI, GDPR, HIPAA, False Positives, SOC, SIEM, API, UEBA. "
-                    f"Numbers and percentages MUST be digits, never words: 31% not 'שלושים ואחד אחוז', "
-                    f"$4.5M not 'ארבעה וחצי מיליון', 500 not 'חמש מאות'.\n"
-                    f"2. Format — HARD REQUIREMENT: near-plain text with controlled bold. "
-                    f"ALLOWED: **product name** or **key metric** in double asterisks — bold ONLY on specific words, not whole sentences. "
-                    f"ALLOWED: 1–2 emojis per message from this set only: 🎯 💡 🛡️ 👋 ✅ ⚡ — opening line or closing question only. "
-                    f"ALLOWED: a blank line between paragraphs for readability. "
-                    f"FORBIDDEN: single asterisks for bullets (*), hashes (#), dashes at line start (- ), backticks, numbered lists. "
-                    f"To emphasize an idea — bold 1–3 words maximum, not the whole sentence.\n"
-                    f"3. Length & focus — HARD LIMIT: your entire response (excluding the closing question) "
-                    f"must be roughly 60-80 words total. Match your structure to the message type: "
-                    f"direct question → answer immediately with no preamble; "
-                    f"pain point → one specific empathy sentence keyed to their exact problem, then value; "
-                    f"objection → acknowledge without apologizing, then reframe to value. "
-                    f"Never open with a generic empathy phrase regardless of message type. "
-                    f"When the user asks about products or services, pick the 1-2 MOST RELEVANT products "
-                    f"to their situation — do NOT enumerate all products in one response. "
-                    f"Cover one product well rather than six products poorly. "
-                    f"If the user mentioned their pain point, lead with the product that solves it directly. "
-                    f"A focused answer that lands is better than a comprehensive answer that overwhelms.\n"
-                    f"4. Conversational flow: do not end every single response with the same qualifying question. "
-                    f"If you already asked about pain points, don't ask again — instead, answer, pitch, and only "
-                    f"close with a light question if it naturally moves the conversation forward.\n"
-                    f"5. Tone: confident, consultative, human. You are a senior solutions advisor, not a chatbot.\n"
-                    f"6. Links & URLs — HARD RULE: never invent or guess a URL. "
-                    f"Only share a link if it appears word-for-word in the product data provided to you in this context. "
-                    f"If the user asks for a link and you don't have one in your data, say so plainly "
-                    f"(e.g. 'I don't have a direct link for that page, but here is what that product covers') "
-                    f"and continue with useful product information. Do NOT fabricate paths like /products/dlp or similar."
-                )
+                "content": _build_final_rules(_company_name, b2b=False),
             })
             llm_response = _strip_markdown(chat(messages) or "")
             print(f"DEBUG: B2C LLM response: {llm_response}")
@@ -376,13 +487,6 @@ def create_sales_graph(company_data: Dict[str, Any] = None):
         execution_path = state.get("execution_path", [])
         execution_path.append("b2b_sales_agent")
 
-        # Skip LLM if handoff was already decided
-        if state.get("handoff"):
-            return {
-                **state,
-                "execution_path": execution_path
-            }
-        
         # Get learning instructions from feedback
         company_id = company_data.get("id") if company_data else None
         learning_instructions = ""
@@ -399,10 +503,9 @@ def create_sales_graph(company_data: Dict[str, Any] = None):
         if company_data and company_data.get("custom_prompt"):
             custom_prompt = company_data.get("custom_prompt")
             lang_instruction = (
-                "CRITICAL: Always respond in the same language the user is writing in. "
-                "If the user writes in Hebrew — respond in Hebrew. "
-                "If the user writes in English — respond in English. "
-                "Detect language automatically per message."
+                "CRITICAL — HARD LOCK: respond in Hebrew ONLY. "
+                "Even if the user writes in English — respond in Hebrew. "
+                "Technical terms, brand names, and product names remain in Latin characters."
             )
 
             # Build knowledge sections from company_data
@@ -443,20 +546,6 @@ def create_sales_graph(company_data: Dict[str, Any] = None):
                 lines = [f"- Q: {f.get('q','')} → A: {f.get('a','')}" for f in faq if isinstance(f, dict)]
                 faq_info = "FAQ:\n" + "\n".join(lines)
 
-            user_msg = state["messages"][-1].content
-            lang_override = (
-                "\n⚠️ LANGUAGE OVERRIDE: The user's message is in Hebrew. "
-                "Your ENTIRE response MUST be in Hebrew only — no English words. "
-                "No bullet points. No markdown headers (#). "
-                "Allowed formatting: **bold** only on product names or key metrics. "
-                "Use 1–2 emojis max from: 🎯 💡 🛡️ 👋 ✅ ⚡. Plain paragraphs with blank lines between them."
-                if _contains_hebrew(user_msg) else
-                "\n⚠️ LANGUAGE OVERRIDE: Respond in English only. "
-                "No bullet points. No markdown headers (#). "
-                "Allowed formatting: **bold** only on product names or key metrics. "
-                "Use 1–2 emojis max from: 🎯 💡 🛡️ 👋 ✅ ⚡. Plain paragraphs with blank lines between them."
-            )
-
             system_prompt = f"""{lang_instruction}
 
 {MESSAGE_QUALITY_INSTRUCTIONS}
@@ -493,7 +582,6 @@ Customer context collected:
 {OPENING_MESSAGE_RULE}
 
 {learning_instructions}
-{lang_override}
 
 Respond to: {state["messages"][-1].content}"""
         else:
@@ -574,95 +662,20 @@ Respond to: {state["messages"][-1].content}"""
                     # Fallback for string messages
                     messages.append({"role": "user", "content": str(msg)})
             
-            # ── Language detection + ABSOLUTE FINAL RULES ──────────────────
-            _last_msg = state["messages"][-1].content
-            _is_hebrew = _contains_hebrew(_last_msg)
-
-            # Inject language suffix into the last user turn
+            # ── Hebrew lock + ABSOLUTE FINAL RULES (B2B) ──────────────────
+            # Language is locked to Hebrew — inject enforcement suffix.
             for i in range(len(messages) - 1, -1, -1):
                 if messages[i].get("role") == "user":
-                    suffix = " [ענה בעברית בלבד]" if _is_hebrew else " [Reply in English only]"
                     messages[i] = {
                         "role": "user",
-                        "content": messages[i]["content"] + suffix
+                        "content": messages[i]["content"] + " [ענה בעברית בלבד]",
                     }
                     break
 
-            # One strong FINAL override — last thing the model reads before generating
-            _lang_label = "Hebrew" if _is_hebrew else "English"
+            _company_name = (company_data or {}).get("name", "החברה")
             messages.append({
                 "role": "system",
-                "content": (
-                    f"ABSOLUTE FINAL RULES — override everything above:\n"
-                    f"1. Language: respond in {_lang_label} ONLY. Every word must be in {_lang_label}.\n"
-                    f"1a. English terms — ZERO EXCEPTIONS: NEVER transliterate brand names, product names, "
-                    f"or technical acronyms into Hebrew phonetics. "
-                    f"Writing 'פורספוינט', 'דיי-אל-פי', 'קאסב', 'זירו טראסט', 'וואן', 'אנדפוינטס', 'סאאס' "
-                    f"is a critical professional failure that destroys credibility. "
-                    f"ALWAYS write in Latin characters: Forcepoint DLP, Forcepoint ONE, CASB, Zero Trust, "
-                    f"Endpoints, SaaS, Cloud, ROI, GDPR, HIPAA, False Positives, SOC, SIEM, API, UEBA. "
-                    f"Numbers and percentages MUST be digits, never words: 31% not 'שלושים ואחד אחוז', "
-                    f"$4.5M not 'ארבעה וחצי מיליון', 500 not 'חמש מאות'.\n"
-                    f"2. Format — HARD REQUIREMENT: near-plain text with controlled bold. "
-                    f"ALLOWED: **product name** or **key metric** in double asterisks — bold ONLY on specific words, not whole sentences. "
-                    f"ALLOWED: 1–2 emojis per message from this set only: 🎯 💡 🛡️ 👋 ✅ ⚡ — opening line or closing question only. "
-                    f"ALLOWED: a blank line between paragraphs for readability. "
-                    f"FORBIDDEN: single asterisks for bullets (*), hashes (#), dashes at line start (- ), backticks, numbered lists. "
-                    f"To emphasize an idea — bold 1–3 words maximum, not the whole sentence.\n"
-                    f"3. Length & focus — HARD LIMIT: your entire response (excluding the closing question) "
-                    f"must be roughly 60-80 words total. Match your structure to the message type: "
-                    f"direct question → answer immediately with no preamble; "
-                    f"pain point → one specific empathy sentence keyed to their exact problem, then value; "
-                    f"objection → acknowledge without apologizing, then reframe to value. "
-                    f"Never open with a generic empathy phrase regardless of message type. "
-                    f"When the user asks about products or services, pick the 1-2 MOST RELEVANT products "
-                    f"to their situation — do NOT enumerate all products in one response. "
-                    f"Cover one product well rather than six products poorly. "
-                    f"If the user mentioned their pain point, lead with the product that solves it directly. "
-                    f"A focused answer that lands is better than a comprehensive answer that overwhelms.\n"
-                    f"4. Conversational flow: do not end every single response with the same qualifying question. "
-                    f"If you already asked about pain points, don't ask again — instead, answer, pitch, and only "
-                    f"close with a light question if it naturally moves the conversation forward.\n"
-                    f"5. Tone: confident, consultative, human. You are a senior solutions advisor, not a chatbot.\n"
-                    f"6. Links & URLs — HARD RULE: never invent or guess a URL. "
-                    f"Only share a link if it appears word-for-word in the product data provided to you in this context. "
-                    f"If the user asks for a link and you don't have one in your data, say so plainly "
-                    f"(e.g. 'I don't have a direct link for that page, but here is what that product covers') "
-                    f"and continue with useful product information. Do NOT fabricate paths like /products/dlp or similar.\n"
-                    f"7. Value-Based Elaboration — MANDATORY: whenever you mention any Forcepoint product "
-                    f"(Forcepoint ONE, DLP, GenAI Security, CASB, UEBA, Insider Threat, or any other solution), "
-                    f"you MUST go beyond naming the product. Explain the concrete BUSINESS VALUE it delivers "
-                    f"in the prospect's specific context. Connect features to outcomes: revenue protection, "
-                    f"compliance risk reduction, productivity gains without security trade-offs, etc. "
-                    f"Wrong: 'We offer GenAI Security to control prompts.' "
-                    f"Right: 'GenAI Security lets your teams safely adopt ChatGPT and Copilot for innovation, "
-                    f"while automatically redacting sensitive IP and PII before it leaves your network — "
-                    f"so you capture the productivity gains without the compliance exposure.' "
-                    f"This rule applies every single time a product is mentioned. No exceptions.\n"
-                    f"8. Closing Question — MANDATORY: EVERY response must end with a strong, sales-qualifying "
-                    f"question that moves this lead closer to a human handoff or demo booking. "
-                    f"NEVER end with passive phrases like 'Do you have any more questions?', "
-                    f"'יש לך עוד שאלות?', 'Is there anything else I can help with?', or 'Feel free to ask.' "
-                    f"These are conversation killers. Instead, use BANT-style qualifying questions or a direct "
-                    f"demo push. Choose the question that best fits the current conversation stage. Examples: "
-                    f"'How many employees in your organization are currently using AI tools like ChatGPT or Copilot?' "
-                    f"'Are your current DLP tools flagging AI-generated data exfiltration attempts, or is that a blind spot right now?' "
-                    f"'What does your current data security stack look like — are you running anything for cloud or endpoint DLP?' "
-                    f"'Would it make sense to set up a 15-minute call with one of our security architects to walk through a live demo?' "
-                    f"The closing question is not optional and overrides any word-count limit set elsewhere.\n"
-                    f"8a. Disengagement Pivot — CRITICAL: if the lead gives a short, closing, or dismissive response "
-                    f"('no', 'nothing', 'ok', 'thanks', 'לא', 'בסדר', 'תודה', or any similarly short reply that signals "
-                    f"the conversation is winding down), do NOT accept it and go passive. "
-                    f"This is your handoff window. Pivot immediately with energy: acknowledge their answer in one "
-                    f"sentence, then push directly for a demo or human handoff. "
-                    f"Example pivot: 'מעולה — כיסינו את הליבה של מה שפורספוינט יכולה לעשות בשבילכם. "
-                    f"הצעד הבא הגיוני הוא שיחה קצרה של 15 דקות עם אחד מהאדריכלים שלנו כדי שתוכל לראות את "
-                    f"הפלטפורמה מטפלת בדיוק בתרחיש שלכם — האם יתאים לך השבוע, או שעדיף שאעביר את פרטיך לצוות שלנו עכשיו?' "
-                    f"In English: 'Perfect — we covered the core. The next step is a 15-minute call with one of our "
-                    f"security architects to see the platform handle your exact scenario. Would this week work, "
-                    f"or should I pass your details to our team now?' "
-                    f"Never let a short reply be the last word."
-                )
+                "content": _build_final_rules(_company_name, b2b=True),
             })
 
             print(f"DEBUG: Sending {len(messages)} messages to B2B LLM (including system prompt)")
@@ -690,12 +703,6 @@ Respond to: {state["messages"][-1].content}"""
                 "execution_path": execution_path
             }
     
-    def should_continue(state: AgentState) -> str:
-        """Determine if we should continue or end"""
-        if state.get("handoff"):
-            return "handoff"
-        return "continue"
-    
     def generate_handoff_response(state: AgentState) -> AgentState:
         """Generate a contextual handoff message via LLM — not a static template."""
 
@@ -703,20 +710,19 @@ Respond to: {state["messages"][-1].content}"""
         execution_path.append("generate_handoff_response")
 
         user_message = state["messages"][-1].content
-        _is_hebrew = _contains_hebrew(user_message)
-        _lang_label = "Hebrew" if _is_hebrew else "English"
+        _company_name = (company_data or {}).get("name", "הצוות שלנו")
 
         system_prompt = (
-            f"You are wrapping up a sales conversation on behalf of Forcepoint.\n"
+            f"You are wrapping up a sales conversation on behalf of {_company_name}.\n"
             f"Write a brief, warm, contextual handoff message (2–3 sentences) that:\n"
             f"1. Acknowledges the specific topic or need the user raised in this conversation.\n"
             f"2. Tells them a human specialist from our team will follow up shortly.\n"
             f"3. Sets a confident, positive expectation — no vague promises.\n\n"
             f"STRICT RULES:\n"
-            f"- Respond in {_lang_label} ONLY. Do not mix languages.\n"
+            f"- Respond in Hebrew ONLY. Even if the user wrote in English — respond in Hebrew.\n"
             f"- Do NOT ask any questions. This is a closing statement.\n"
             f"- No bullet points, no numbered lists, no markdown headers.\n"
-            f"- Bold (**) is allowed ONLY on product names (e.g. **Forcepoint DLP**) if you mention one.\n"
+            f"- Bold (**) is allowed ONLY on product names if you mention one.\n"
             f"- Zero emojis.\n"
             f"- 30–50 words maximum. Short and conclusive.\n"
             f"- Sound like a professional human, not a bot."
@@ -735,10 +741,10 @@ Respond to: {state["messages"][-1].content}"""
         messages.append({
             "role": "system",
             "content": (
-                f"FINAL INSTRUCTION: Write the handoff message now. "
-                f"Respond in {_lang_label} only. 2–3 sentences, no questions. "
-                f"Reference what the user actually discussed. "
-                f"Confirm that a human specialist will follow up."
+                "FINAL INSTRUCTION: Write the handoff message now. "
+                "Respond in Hebrew only. 2–3 sentences, no questions. "
+                "Reference what the user actually discussed. "
+                "Confirm that a human specialist will follow up."
             ),
         })
 
@@ -760,16 +766,24 @@ Respond to: {state["messages"][-1].content}"""
     
     # Create the graph
     workflow = StateGraph(AgentState)
-    
+
     # Add nodes
-    workflow.add_node("check_handoff_requirement", check_handoff_requirement)
+    workflow.add_node("classify_intent", classify_intent)
     workflow.add_node("update_customer_profile", update_customer_profile)
     workflow.add_node("b2c_sales_agent", b2c_sales_agent)
     workflow.add_node("b2b_sales_agent", b2b_sales_agent)
     workflow.add_node("generate_handoff_response", generate_handoff_response)
 
     # Add edges
-    workflow.add_edge("check_handoff_requirement", "update_customer_profile")
+    # classify_intent routes: HANDOFF → generate_handoff_response, SALES → update_customer_profile
+    workflow.add_conditional_edges(
+        "classify_intent",
+        lambda s: "generate_handoff_response" if s.get("handoff") else "update_customer_profile",
+        {
+            "generate_handoff_response": "generate_handoff_response",
+            "update_customer_profile": "update_customer_profile",
+        }
+    )
     workflow.add_conditional_edges(
         "update_customer_profile",
         business_type_router,
@@ -778,26 +792,12 @@ Respond to: {state["messages"][-1].content}"""
             "b2b_sales_agent": "b2b_sales_agent"
         }
     )
-    workflow.add_conditional_edges(
-        "b2c_sales_agent",
-        should_continue,
-        {
-            "handoff": "generate_handoff_response",
-            "continue": END
-        }
-    )
-    workflow.add_conditional_edges(
-        "b2b_sales_agent",
-        should_continue,
-        {
-            "handoff": "generate_handoff_response",
-            "continue": END
-        }
-    )
+    workflow.add_edge("b2c_sales_agent", END)
+    workflow.add_edge("b2b_sales_agent", END)
     workflow.add_edge("generate_handoff_response", END)
-    
+
     # Set entry point
-    workflow.set_entry_point("check_handoff_requirement")
-    
+    workflow.set_entry_point("classify_intent")
+
     # Compile and return the graph
     return workflow.compile()

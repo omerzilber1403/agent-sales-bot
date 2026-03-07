@@ -11,7 +11,8 @@ from .general_instructions import (
     OPENING_MESSAGE_RULE,
     INFORMATION_FIRST_APPROACH,
     PRICING_AND_PRODUCTS_RULES,
-    LANGUAGE_AND_TERMS_RULES
+    LANGUAGE_AND_TERMS_RULES,
+    SYSTEM_BOUNDARIES
 )
 
 from .b2c_instructions import (
@@ -86,6 +87,7 @@ __all__ = [
     "INFORMATION_FIRST_APPROACH",
     "PRICING_AND_PRODUCTS_RULES",
     "LANGUAGE_AND_TERMS_RULES",
+    "SYSTEM_BOUNDARIES",
     
     # B2C instructions
     "B2C_SPECIFIC_INSTRUCTIONS",
