@@ -11,6 +11,7 @@ from ..instructions import (
     OPENING_MESSAGE_RULE,
     INFORMATION_FIRST_APPROACH,
     PRICING_AND_PRODUCTS_RULES,
+    LANGUAGE_AND_TERMS_RULES,
     B2C_SPECIFIC_INSTRUCTIONS,
     B2C_QUESTION_GUIDELINES,
     B2B_SPECIFIC_INSTRUCTIONS,
@@ -309,6 +310,14 @@ def create_sales_graph(company_data: Dict[str, Any] = None):
                 "content": (
                     f"ABSOLUTE FINAL RULES — override everything above:\n"
                     f"1. Language: respond in {_lang_label} ONLY. Every word must be in {_lang_label}.\n"
+                    f"1a. English terms — ZERO EXCEPTIONS: NEVER transliterate brand names, product names, "
+                    f"or technical acronyms into Hebrew phonetics. "
+                    f"Writing 'פורספוינט', 'דיי-אל-פי', 'קאסב', 'זירו טראסט', 'וואן', 'אנדפוינטס', 'סאאס' "
+                    f"is a critical professional failure that destroys credibility. "
+                    f"ALWAYS write in Latin characters: Forcepoint DLP, Forcepoint ONE, CASB, Zero Trust, "
+                    f"Endpoints, SaaS, Cloud, ROI, GDPR, HIPAA, False Positives, SOC, SIEM, API, UEBA. "
+                    f"Numbers and percentages MUST be digits, never words: 31% not 'שלושים ואחד אחוז', "
+                    f"$4.5M not 'ארבעה וחצי מיליון', 500 not 'חמש מאות'.\n"
                     f"2. Format — HARD REQUIREMENT: near-plain text with controlled bold. "
                     f"ALLOWED: **product name** or **key metric** in double asterisks — bold ONLY on specific words, not whole sentences. "
                     f"ALLOWED: 1–2 emojis per message from this set only: 🎯 💡 🛡️ 👋 ✅ ⚡ — opening line or closing question only. "
@@ -582,6 +591,14 @@ Respond to: {state["messages"][-1].content}"""
                 "content": (
                     f"ABSOLUTE FINAL RULES — override everything above:\n"
                     f"1. Language: respond in {_lang_label} ONLY. Every word must be in {_lang_label}.\n"
+                    f"1a. English terms — ZERO EXCEPTIONS: NEVER transliterate brand names, product names, "
+                    f"or technical acronyms into Hebrew phonetics. "
+                    f"Writing 'פורספוינט', 'דיי-אל-פי', 'קאסב', 'זירו טראסט', 'וואן', 'אנדפוינטס', 'סאאס' "
+                    f"is a critical professional failure that destroys credibility. "
+                    f"ALWAYS write in Latin characters: Forcepoint DLP, Forcepoint ONE, CASB, Zero Trust, "
+                    f"Endpoints, SaaS, Cloud, ROI, GDPR, HIPAA, False Positives, SOC, SIEM, API, UEBA. "
+                    f"Numbers and percentages MUST be digits, never words: 31% not 'שלושים ואחד אחוז', "
+                    f"$4.5M not 'ארבעה וחצי מיליון', 500 not 'חמש מאות'.\n"
                     f"2. Format — HARD REQUIREMENT: near-plain text with controlled bold. "
                     f"ALLOWED: **product name** or **key metric** in double asterisks — bold ONLY on specific words, not whole sentences. "
                     f"ALLOWED: 1–2 emojis per message from this set only: 🎯 💡 🛡️ 👋 ✅ ⚡ — opening line or closing question only. "

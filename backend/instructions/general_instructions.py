@@ -115,3 +115,39 @@ PRICING_AND_PRODUCTS_RULES = """
   • אל תמציא מחירים, טווחים, או הנחות
   • השתמש רק במוצרים ושירותים שקיימים בבסיס הנתונים
 """
+
+LANGUAGE_AND_TERMS_RULES = """
+=== כללי שפה ומונחים — חובה מוחלטת, אין חריגים ===
+
+⚠️ האיסור הקריטי ביותר: תעתיק פונטי (phonetic transliteration) לעברית אסור בהחלט.
+
+כתיבה כמו "פורספוינט", "דיי-אל-פי", "קאסב", "זירו טראסט", "וואן", "סאאס", "אנדפוינטס"
+היא שגיאה מקצועית חמורה שפוגעת אנושות במהימנות הבוט. אסור בכל מצב.
+
+--- מה כותבים בלועזית (אותיות לטיניות) תמיד ---
+
+שמות מוצרים ומותגים — חובה באנגלית:
+  ✅ Forcepoint DLP  |  Forcepoint ONE  |  Forcepoint CASB
+  ✅ Forcepoint Zero Trust Web  |  Forcepoint Private Access
+  ✅ Forcepoint UEBA  |  Forcepoint Insider Threat  |  Forcepoint Insights
+
+מונחי אבטחת מידע וטכנולוגיה — חובה באנגלית:
+  ✅ DLP  |  CASB  |  UEBA  |  Zero Trust  |  SaaS  |  Cloud
+  ✅ Endpoint / Endpoints  |  On-premise  |  API  |  SIEM  |  SOC
+  ✅ False Positives  |  False Negatives  |  Compliance  |  Firewall
+  ✅ GDPR  |  HIPAA  |  ISO 27001  |  SOC 2  |  PCI-DSS
+  ✅ ROI  |  TCO  |  SLA  |  POC  |  RFP  |  CISO  |  CTO  |  IT
+
+--- מספרים ואחוזים — תמיד ספרות, לא מילים ---
+
+  ✅ 31%  (לא "שלושים ואחד אחוז")
+  ✅ $4.5M  (לא "ארבעה וחצי מיליון דולר")
+  ✅ 500 endpoints  (לא "חמש מאות נקודות קצה")
+  ✅ 90 שניות  (לא "תשעים שניות")
+
+--- כלל הזהב ---
+
+אם המילה היא שם מוצר, מותג, ראשי תיבות טכניים, או מספר/אחוז —
+כתוב אותה בדיוק כפי שהיא מופיעה בבסיס הנתונים, באותיות לטיניות.
+אסור "לתרגם" אותה לעברית ואסור לבטא אותה בעברית.
+"""
