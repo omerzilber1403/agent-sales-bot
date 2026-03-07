@@ -55,7 +55,7 @@ def _strip_markdown(text: str) -> str:
     text = _re.sub(r'^\s*[-•]\s+', '', text, flags=_re.MULTILINE)
     # Remove numbered list markers (1. item → item)
     text = _re.sub(r'^\s*\d+\.\s+', '', text, flags=_re.MULTILINE)
-    # Collapse excess blank lines (keep one blank line for 3-beat separation)
+    # Collapse excess blank lines (keep one blank line for paragraph separation)
     text = _re.sub(r'\n{3,}', '\n\n', text)
     return text.strip()
 
@@ -321,11 +321,15 @@ def create_sales_graph(company_data: Dict[str, Any] = None):
                     f"2. Format — HARD REQUIREMENT: near-plain text with controlled bold. "
                     f"ALLOWED: **product name** or **key metric** in double asterisks — bold ONLY on specific words, not whole sentences. "
                     f"ALLOWED: 1–2 emojis per message from this set only: 🎯 💡 🛡️ 👋 ✅ ⚡ — opening line or closing question only. "
-                    f"ALLOWED: a blank line between paragraphs (the 3-beat structure). "
+                    f"ALLOWED: a blank line between paragraphs for readability. "
                     f"FORBIDDEN: single asterisks for bullets (*), hashes (#), dashes at line start (- ), backticks, numbered lists. "
                     f"To emphasize an idea — bold 1–3 words maximum, not the whole sentence.\n"
                     f"3. Length & focus — HARD LIMIT: your entire response (excluding the closing question) "
-                    f"must be 3 short paragraphs following the 3-beat structure (empathy → value → ask), roughly 60-80 words total. No more. "
+                    f"must be roughly 60-80 words total. Match your structure to the message type: "
+                    f"direct question → answer immediately with no preamble; "
+                    f"pain point → one specific empathy sentence keyed to their exact problem, then value; "
+                    f"objection → acknowledge without apologizing, then reframe to value. "
+                    f"Never open with a generic empathy phrase regardless of message type. "
                     f"When the user asks about products or services, pick the 1-2 MOST RELEVANT products "
                     f"to their situation — do NOT enumerate all products in one response. "
                     f"Cover one product well rather than six products poorly. "
@@ -602,11 +606,15 @@ Respond to: {state["messages"][-1].content}"""
                     f"2. Format — HARD REQUIREMENT: near-plain text with controlled bold. "
                     f"ALLOWED: **product name** or **key metric** in double asterisks — bold ONLY on specific words, not whole sentences. "
                     f"ALLOWED: 1–2 emojis per message from this set only: 🎯 💡 🛡️ 👋 ✅ ⚡ — opening line or closing question only. "
-                    f"ALLOWED: a blank line between paragraphs (the 3-beat structure). "
+                    f"ALLOWED: a blank line between paragraphs for readability. "
                     f"FORBIDDEN: single asterisks for bullets (*), hashes (#), dashes at line start (- ), backticks, numbered lists. "
                     f"To emphasize an idea — bold 1–3 words maximum, not the whole sentence.\n"
                     f"3. Length & focus — HARD LIMIT: your entire response (excluding the closing question) "
-                    f"must be 3 short paragraphs following the 3-beat structure (empathy → value → ask), roughly 60-80 words total. No more. "
+                    f"must be roughly 60-80 words total. Match your structure to the message type: "
+                    f"direct question → answer immediately with no preamble; "
+                    f"pain point → one specific empathy sentence keyed to their exact problem, then value; "
+                    f"objection → acknowledge without apologizing, then reframe to value. "
+                    f"Never open with a generic empathy phrase regardless of message type. "
                     f"When the user asks about products or services, pick the 1-2 MOST RELEVANT products "
                     f"to their situation — do NOT enumerate all products in one response. "
                     f"Cover one product well rather than six products poorly. "
