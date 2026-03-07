@@ -39,19 +39,22 @@ def _contains_hebrew(text: str) -> bool:
     return bool(re.search(r'[\u0590-\u05FF]', text))
 
 def _strip_markdown(text: str) -> str:
-    """Remove markdown formatting so raw symbols don't clutter the chat UI."""
+    """Strip most markdown but preserve **bold** — the chat UI renders it."""
     import re as _re
-    # Remove bold/italic markers (**text** → text, *text* → text, __text__ → text)
-    text = _re.sub(r'\*\*(.+?)\*\*', r'\1', text, flags=_re.DOTALL)
-    text = _re.sub(r'__(.+?)__',     r'\1', text, flags=_re.DOTALL)
-    text = _re.sub(r'\*(.+?)\*',     r'\1', text, flags=_re.DOTALL)
+    # **bold** is preserved intentionally: product names and key metrics use it.
+    # Remove underline-bold (__text__ → text) — not used by the instruction set.
+    text = _re.sub(r'__(.+?)__', r'\1', text, flags=_re.DOTALL)
+    # Remove single-asterisk italic (*text* → text) without touching **bold**.
+    # Negative lookahead/lookbehind ensures lone * are matched, not **.
+    text = _re.sub(r'(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)', r'\1', text, flags=_re.DOTALL)
     # Remove heading markers (### / ## / #)
     text = _re.sub(r'^#{1,6}\s+', '', text, flags=_re.MULTILINE)
-    # Convert bullet lines (- item / * item) → plain sentence with a space separator
-    text = _re.sub(r'^\s*[-*•]\s+', '', text, flags=_re.MULTILINE)
+    # Remove dash/bullet lines at line start (- item, • item).
+    # Intentionally excludes * to avoid risk of clipping **bold** line starts.
+    text = _re.sub(r'^\s*[-•]\s+', '', text, flags=_re.MULTILINE)
     # Remove numbered list markers (1. item → item)
     text = _re.sub(r'^\s*\d+\.\s+', '', text, flags=_re.MULTILINE)
-    # Collapse excess blank lines
+    # Collapse excess blank lines (keep one blank line for 3-beat separation)
     text = _re.sub(r'\n{3,}', '\n\n', text)
     return text.strip()
 
@@ -306,12 +309,14 @@ def create_sales_graph(company_data: Dict[str, Any] = None):
                 "content": (
                     f"ABSOLUTE FINAL RULES — override everything above:\n"
                     f"1. Language: respond in {_lang_label} ONLY. Every word must be in {_lang_label}.\n"
-                    f"2. Format — HARD REQUIREMENT: plain text only. "
-                    f"Zero asterisks (*/**), zero hashes (#), zero dashes or dots at line start, "
-                    f"zero backticks, zero numbered lists. "
-                    f"If you want to separate two ideas, use a blank line between paragraphs — that is the ONLY allowed formatting.\n"
+                    f"2. Format — HARD REQUIREMENT: near-plain text with controlled bold. "
+                    f"ALLOWED: **product name** or **key metric** in double asterisks — bold ONLY on specific words, not whole sentences. "
+                    f"ALLOWED: 1–2 emojis per message from this set only: 🎯 💡 🛡️ 👋 ✅ ⚡ — opening line or closing question only. "
+                    f"ALLOWED: a blank line between paragraphs (the 3-beat structure). "
+                    f"FORBIDDEN: single asterisks for bullets (*), hashes (#), dashes at line start (- ), backticks, numbered lists. "
+                    f"To emphasize an idea — bold 1–3 words maximum, not the whole sentence.\n"
                     f"3. Length & focus — HARD LIMIT: your entire response (excluding the closing question) "
-                    f"must be 2-3 short paragraphs, roughly 80-130 words. No more. "
+                    f"must be 3 short paragraphs following the 3-beat structure (empathy → value → ask), roughly 60-80 words total. No more. "
                     f"When the user asks about products or services, pick the 1-2 MOST RELEVANT products "
                     f"to their situation — do NOT enumerate all products in one response. "
                     f"Cover one product well rather than six products poorly. "
@@ -429,10 +434,14 @@ def create_sales_graph(company_data: Dict[str, Any] = None):
             lang_override = (
                 "\n⚠️ LANGUAGE OVERRIDE: The user's message is in Hebrew. "
                 "Your ENTIRE response MUST be in Hebrew only — no English words. "
-                "No bullet points. No bold. Plain paragraphs only."
+                "No bullet points. No markdown headers (#). "
+                "Allowed formatting: **bold** only on product names or key metrics. "
+                "Use 1–2 emojis max from: 🎯 💡 🛡️ 👋 ✅ ⚡. Plain paragraphs with blank lines between them."
                 if _contains_hebrew(user_msg) else
                 "\n⚠️ LANGUAGE OVERRIDE: Respond in English only. "
-                "No bullet points. No bold. Plain paragraphs only."
+                "No bullet points. No markdown headers (#). "
+                "Allowed formatting: **bold** only on product names or key metrics. "
+                "Use 1–2 emojis max from: 🎯 💡 🛡️ 👋 ✅ ⚡. Plain paragraphs with blank lines between them."
             )
 
             system_prompt = f"""{lang_instruction}
@@ -573,12 +582,14 @@ Respond to: {state["messages"][-1].content}"""
                 "content": (
                     f"ABSOLUTE FINAL RULES — override everything above:\n"
                     f"1. Language: respond in {_lang_label} ONLY. Every word must be in {_lang_label}.\n"
-                    f"2. Format — HARD REQUIREMENT: plain text only. "
-                    f"Zero asterisks (*/**), zero hashes (#), zero dashes or dots at line start, "
-                    f"zero backticks, zero numbered lists. "
-                    f"If you want to separate two ideas, use a blank line between paragraphs — that is the ONLY allowed formatting.\n"
+                    f"2. Format — HARD REQUIREMENT: near-plain text with controlled bold. "
+                    f"ALLOWED: **product name** or **key metric** in double asterisks — bold ONLY on specific words, not whole sentences. "
+                    f"ALLOWED: 1–2 emojis per message from this set only: 🎯 💡 🛡️ 👋 ✅ ⚡ — opening line or closing question only. "
+                    f"ALLOWED: a blank line between paragraphs (the 3-beat structure). "
+                    f"FORBIDDEN: single asterisks for bullets (*), hashes (#), dashes at line start (- ), backticks, numbered lists. "
+                    f"To emphasize an idea — bold 1–3 words maximum, not the whole sentence.\n"
                     f"3. Length & focus — HARD LIMIT: your entire response (excluding the closing question) "
-                    f"must be 2-3 short paragraphs, roughly 80-130 words. No more. "
+                    f"must be 3 short paragraphs following the 3-beat structure (empathy → value → ask), roughly 60-80 words total. No more. "
                     f"When the user asks about products or services, pick the 1-2 MOST RELEVANT products "
                     f"to their situation — do NOT enumerate all products in one response. "
                     f"Cover one product well rather than six products poorly. "
