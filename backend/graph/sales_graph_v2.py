@@ -697,23 +697,66 @@ Respond to: {state["messages"][-1].content}"""
         return "continue"
     
     def generate_handoff_response(state: AgentState) -> AgentState:
-        """Generate handoff response using the instruction module"""
-        
+        """Generate a contextual handoff message via LLM — not a static template."""
+
         execution_path = state.get("execution_path", [])
         execution_path.append("generate_handoff_response")
-        
-        result = {
-            **state,
-            "response": HANDOFF_RESPONSE,
-            "tone": "professional",
-            "execution_path": execution_path
-        }
-        
-        # Debug: Show user message and bot response
+
         user_message = state["messages"][-1].content
-        debug_bot_response("generate_handoff_response", user_message, HANDOFF_RESPONSE)
-        
-        return result
+        _is_hebrew = _contains_hebrew(user_message)
+        _lang_label = "Hebrew" if _is_hebrew else "English"
+
+        system_prompt = (
+            f"You are wrapping up a sales conversation on behalf of Forcepoint.\n"
+            f"Write a brief, warm, contextual handoff message (2–3 sentences) that:\n"
+            f"1. Acknowledges the specific topic or need the user raised in this conversation.\n"
+            f"2. Tells them a human specialist from our team will follow up shortly.\n"
+            f"3. Sets a confident, positive expectation — no vague promises.\n\n"
+            f"STRICT RULES:\n"
+            f"- Respond in {_lang_label} ONLY. Do not mix languages.\n"
+            f"- Do NOT ask any questions. This is a closing statement.\n"
+            f"- No bullet points, no numbered lists, no markdown headers.\n"
+            f"- Bold (**) is allowed ONLY on product names (e.g. **Forcepoint DLP**) if you mention one.\n"
+            f"- Zero emojis.\n"
+            f"- 30–50 words maximum. Short and conclusive.\n"
+            f"- Sound like a professional human, not a bot."
+        )
+
+        # Build message list: system + full conversation history
+        messages = [{"role": "system", "content": system_prompt}]
+        for msg in state["messages"]:
+            if hasattr(msg, "content"):
+                role = "assistant" if (hasattr(msg, "type") and msg.type == "ai") else "user"
+                messages.append({"role": role, "content": msg.content})
+            else:
+                messages.append({"role": "user", "content": str(msg)})
+
+        # Hard final instruction — last thing the model reads
+        messages.append({
+            "role": "system",
+            "content": (
+                f"FINAL INSTRUCTION: Write the handoff message now. "
+                f"Respond in {_lang_label} only. 2–3 sentences, no questions. "
+                f"Reference what the user actually discussed. "
+                f"Confirm that a human specialist will follow up."
+            ),
+        })
+
+        try:
+            llm_response = _strip_markdown(chat(messages) or "").strip()
+            if not llm_response:
+                llm_response = HANDOFF_RESPONSE
+        except Exception:
+            llm_response = HANDOFF_RESPONSE
+
+        debug_bot_response("generate_handoff_response", user_message, llm_response)
+
+        return {
+            **state,
+            "response": llm_response,
+            "tone": "professional",
+            "execution_path": execution_path,
+        }
     
     # Create the graph
     workflow = StateGraph(AgentState)
