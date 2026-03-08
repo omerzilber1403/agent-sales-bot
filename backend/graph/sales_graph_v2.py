@@ -101,6 +101,20 @@ _NEGATION_PATTERNS = [
     "no, ", "לא, ", "נגיד שלא", "אולי בהמשך", "maybe later",
 ]
 
+# Explicit human-agent request patterns — always HANDOFF, checked before LLM
+# These phrases unambiguously mean "transfer me to a person" and must never
+# be down-classified to SALES by the LLM, regardless of conversation history.
+_EXPLICIT_HUMAN_REQUESTS = [
+    "נציג אנושי",
+    "תעביר אותי",
+    "העבר אותי",
+    "לדבר עם נציג",
+    "לדבר עם מישהו",
+    "connect me to",
+    "speak to a human",
+    "talk to someone real",
+]
+
 def _build_final_rules(company_name: str, b2b: bool = False) -> str:
     """
     Build the ABSOLUTE FINAL RULES system message appended as the last item
@@ -197,6 +211,19 @@ def create_sales_graph(company_data: Dict[str, Any] = None):
 
         last_msg = state["messages"][-1].content
         last_lower = last_msg.lower().strip()
+
+        # ── Stage 0: Explicit human-agent request — always HANDOFF ──────────
+        # Must run before Stage 1 (negation guard) so that phrases like
+        # "תעביר אותי לנציג" are never misclassified as SALES by the LLM.
+        for phrase in _EXPLICIT_HUMAN_REQUESTS:
+            if phrase in last_lower:
+                print(f"🔍 classify_intent → HANDOFF (explicit human-agent: '{phrase}')")
+                return {
+                    **state,
+                    "handoff": True,
+                    "handoff_reason": f"Explicit human-agent request: '{phrase}'",
+                    "execution_path": execution_path,
+                }
 
         # ── Stage 1: Negation guard ──────────────────────────────────────────
         # Any explicit refusal or "not now" → SALES, skip LLM entirely.
