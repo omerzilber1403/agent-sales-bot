@@ -161,20 +161,22 @@ def _build_final_rules(company_name: str, b2b: bool = False, message_count: int 
             )
         else:
             base += (
-                f"7. Value-Based Elaboration — MANDATORY: whenever you mention a product or solution,\n"
-                f"   go beyond naming it. Connect features to concrete business outcomes: risk reduction,\n"
-                f"   compliance gains, productivity without security trade-offs, cost of breach avoided.\n"
-                f"   Wrong: 'We offer X.' Right: 'X lets your team do Y, which means Z for the business.'\n"
-                f"8. Closing Question — MANDATORY: every sales response must end with a strong,\n"
-                f"   qualifying question that moves the lead toward a demo or handoff.\n"
-                f"   NEVER use passive closers like 'יש לך עוד שאלות?' or 'Feel free to ask.'\n"
-                f"   Use BANT-style questions or a direct demo push.\n"
-                f"8a. Disengagement Pivot — CRITICAL: if the lead gives a short dismissive response\n"
-                f"   ('no', 'ok', 'תודה', 'בסדר'), do NOT go passive. Pivot with energy:\n"
-                f"   acknowledge in one sentence, then push for a demo or human handoff.\n"
-                f"   Example: 'מעולה — כיסינו את הליבה. הצעד הבא הגיוני הוא שיחה קצרה עם\n"
-                f"   הצוות הטכני שלנו — האם יתאים לך השבוע?'\n"
-                f"   Never let a short reply be the last word.\n"
+                f"7. Non-Repetition — HARD RULE: scan the full conversation history before responding.\n"
+                f"   If a statistic, tagline, or product one-liner has already appeared in the thread —\n"
+                f"   do NOT repeat it. Use a different angle: a new technical detail, a compliance\n"
+                f"   implication, a use-case, or a different business outcome.\n"
+                f"   Example violation: saying '31% operational savings' a second time.\n"
+                f"   Example fix: switch to a specific technical capability or a customer-scenario angle.\n"
+                f"8. Context-Aware Closing — read the user's current intent:\n"
+                f"   • Technical question (how does it work, what's the difference, architecture) →\n"
+                f"     Answer fully and precisely. You MAY end with a follow-on technical question.\n"
+                f"     Do NOT force a demo push after every technical answer.\n"
+                f"   • Evaluation signal (pricing, comparison, scope) →\n"
+                f"     Answer, show fit, then lightly suggest a next step.\n"
+                f"   • Buying signal (agreement, timeline, budget mention) →\n"
+                f"     Push directly for a demo or call with a human specialist.\n"
+                f"   Maximum ONE closing/demo push per 2 exchanges. Never use the same closing\n"
+                f"   question twice in a row — vary the angle each time.\n"
             )
     return base
 
