@@ -115,7 +115,7 @@ _EXPLICIT_HUMAN_REQUESTS = [
     "talk to someone real",
 ]
 
-def _build_final_rules(company_name: str, b2b: bool = False) -> str:
+def _build_final_rules(company_name: str, b2b: bool = False, message_count: int = 0) -> str:
     """
     Build the ABSOLUTE FINAL RULES system message appended as the last item
     before LLM generation.  Always enforces Hebrew, includes SYSTEM_BOUNDARIES,
@@ -150,22 +150,32 @@ def _build_final_rules(company_name: str, b2b: bool = False) -> str:
         f"{SYSTEM_BOUNDARIES}\n"
     )
     if b2b:
-        base += (
-            f"7. Value-Based Elaboration — MANDATORY: whenever you mention a product or solution,\n"
-            f"   go beyond naming it. Connect features to concrete business outcomes: risk reduction,\n"
-            f"   compliance gains, productivity without security trade-offs, cost of breach avoided.\n"
-            f"   Wrong: 'We offer X.' Right: 'X lets your team do Y, which means Z for the business.'\n"
-            f"8. Closing Question — MANDATORY: every sales response must end with a strong,\n"
-            f"   qualifying question that moves the lead toward a demo or handoff.\n"
-            f"   NEVER use passive closers like 'יש לך עוד שאלות?' or 'Feel free to ask.'\n"
-            f"   Use BANT-style questions or a direct demo push.\n"
-            f"8a. Disengagement Pivot — CRITICAL: if the lead gives a short dismissive response\n"
-            f"   ('no', 'ok', 'תודה', 'בסדר'), do NOT go passive. Pivot with energy:\n"
-            f"   acknowledge in one sentence, then push for a demo or human handoff.\n"
-            f"   Example: 'מעולה — כיסינו את הליבה. הצעד הבא הגיוני הוא שיחה קצרה עם\n"
-            f"   הצוות הטכני שלנו — האם יתאים לך השבוע?'\n"
-            f"   Never let a short reply be the last word.\n"
-        )
+        if message_count >= 5:
+            base += (
+                f"7. Late Stage — HARD RULE: this conversation already has {message_count} exchanges. "
+                f"Do NOT ask another qualifying question of any kind.\n"
+                f"   Instead: briefly confirm what was discussed (1 sentence), state clearly that a human "
+                f"specialist from {company_name} will follow up directly to set next steps, and stop.\n"
+                f"   Example: 'כיסינו את הצרכים שלכם — נציג מ-{company_name} יצור איתכם קשר ישירות לתיאום הצעד הבא.'\n"
+                f"   No product lists, no stats, no new questions. Natural and conclusive.\n"
+            )
+        else:
+            base += (
+                f"7. Value-Based Elaboration — MANDATORY: whenever you mention a product or solution,\n"
+                f"   go beyond naming it. Connect features to concrete business outcomes: risk reduction,\n"
+                f"   compliance gains, productivity without security trade-offs, cost of breach avoided.\n"
+                f"   Wrong: 'We offer X.' Right: 'X lets your team do Y, which means Z for the business.'\n"
+                f"8. Closing Question — MANDATORY: every sales response must end with a strong,\n"
+                f"   qualifying question that moves the lead toward a demo or handoff.\n"
+                f"   NEVER use passive closers like 'יש לך עוד שאלות?' or 'Feel free to ask.'\n"
+                f"   Use BANT-style questions or a direct demo push.\n"
+                f"8a. Disengagement Pivot — CRITICAL: if the lead gives a short dismissive response\n"
+                f"   ('no', 'ok', 'תודה', 'בסדר'), do NOT go passive. Pivot with energy:\n"
+                f"   acknowledge in one sentence, then push for a demo or human handoff.\n"
+                f"   Example: 'מעולה — כיסינו את הליבה. הצעד הבא הגיוני הוא שיחה קצרה עם\n"
+                f"   הצוות הטכני שלנו — האם יתאים לך השבוע?'\n"
+                f"   Never let a short reply be the last word.\n"
+            )
     return base
 
 def business_type_router(state: AgentState) -> Literal["b2c_sales_agent", "b2b_sales_agent"]:
@@ -246,7 +256,7 @@ def create_sales_graph(company_data: Dict[str, Any] = None):
             "great", "absolutely", "let's do it", "let's", "מעולה",
         }
         _meeting_keywords = {
-            "פגישה", "שיחה", "demo", "הדגמה", "call", "לקבוע", "לתאם",
+            "פגישה", "שיחה", "שיחת", "demo", "הדגמה", "דמו", "הדמו", "call", "לקבוע", "לתאם",
             "schedule", "meeting", "15 דקות", "half hour", "חצי שעה",
         }
         if any(a in last_lower for a in _short_affirmatives):
@@ -700,9 +710,10 @@ Respond to: {state["messages"][-1].content}"""
                     break
 
             _company_name = (company_data or {}).get("name", "החברה")
+            _msg_count = state.get("message_count", 0)
             messages.append({
                 "role": "system",
-                "content": _build_final_rules(_company_name, b2b=True),
+                "content": _build_final_rules(_company_name, b2b=True, message_count=_msg_count),
             })
 
             print(f"DEBUG: Sending {len(messages)} messages to B2B LLM (including system prompt)")
